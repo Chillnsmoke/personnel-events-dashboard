@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.PersonnelEventsDashboard" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>
