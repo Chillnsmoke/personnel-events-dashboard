@@ -12,6 +12,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import com.example.personneleventsdashboard.ui.theme.PersonnelEventsDashboardTheme
+import android.util.Log
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.example.personneleventsdashboard.data.AppDatabaseProvider
+import com.example.personneleventsdashboard.model.Person
+import kotlinx.coroutines.flow.first
+
+
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -27,6 +35,27 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        lifecycleScope.launch {
+            val db = AppDatabaseProvider.getDatabase(this@MainActivity)
+            val personDao = db.personDao()
+
+            // Insert test person
+            val newPerson = Person(
+                lastName = "Smith",
+                firstName = "Jane",
+                rank = "AMT2",
+                shop = "Avionics",
+                phoneNumber = "555-1234",
+                qualifications = "Flight Engineer, Instructor",
+                status = "Normal"
+            )
+            val id = personDao.insertPerson(newPerson)
+
+            // Query all persons (one-time)
+            val people = personDao.getAllPersons().first()
+            Log.d("RoomTest", "People in DB: $people")
+        }
+
     }
 }
 
