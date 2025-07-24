@@ -9,7 +9,7 @@ data class Person(
     val lastName: String,
     val firstName: String,
     val rank: String,
-    val shop: String,
+    val shopId: Int,
     val phoneNumber: String,
     val qualifications: String,
     val status: String = "Normal" // default value

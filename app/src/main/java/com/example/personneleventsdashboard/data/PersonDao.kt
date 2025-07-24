@@ -28,7 +28,6 @@ interface PersonDao {
         WHERE lastName LIKE '%' || :query || '%' 
            OR firstName LIKE '%' || :query || '%'
            OR rank LIKE '%' || :query || '%'
-           OR shop LIKE '%' || :query || '%'
            OR qualifications LIKE '%' || :query || '%'
         ORDER BY lastName, firstName
     """)
