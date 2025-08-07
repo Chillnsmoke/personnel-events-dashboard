@@ -39,6 +39,7 @@ import com.example.personneleventsdashboard.ui.theme.*
 
 import androidx.compose.foundation.clickable
 import android.app.Application
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -53,6 +54,7 @@ import kotlinx.coroutines.flow.Flow
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -86,7 +88,8 @@ class MainActivity : ComponentActivity() {
                         context.applicationContext as Application
                     )
                 )
-                val (selectedPerson, setSelectedPerson) = remember { mutableStateOf<Person?>(null) }
+
+                val shopList = shopViewModel.shops.collectAsState(initial = emptyList()).value
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -105,9 +108,10 @@ class MainActivity : ComponentActivity() {
                                     .fillMaxWidth()
                             ) {
                                 ShopRosterQuadrant(
-                                    shops = shopViewModel.shops.collectAsState(initial = emptyList()).value,
+                                    shops = shopList,
                                     people = personViewModel.people.collectAsState(initial = emptyList()).value,
-                                    onPersonClick = setSelectedPerson
+                                    shopList = shopList,
+                                    personViewModel = personViewModel
                                 )
                             }
                             Box(
@@ -141,17 +145,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                }
-                if (selectedPerson != null) {
-                    PersonDetailsDialog(
-                        person = selectedPerson,
-                        shopList = shopViewModel.shops.collectAsState(initial = emptyList()).value,
-                        onDismiss = { setSelectedPerson(null) },
-                        onSave = { updatedPerson ->
-                            personViewModel.updatePerson(updatedPerson)
-                            setSelectedPerson(null)
-                        }
-                    )
                 }
             }
 
@@ -188,7 +181,8 @@ fun colorForRank(rank: String): Color = when (rank) {
 fun ShopRosterQuadrant(
     shops: List<Shop>,
     people: List<Person>,
-    onPersonClick: (Person) -> Unit
+    shopList: List<Shop>,
+    personViewModel: PersonViewModel
 ) {
     // Map shops by name for quick lookup
     val shopMap = shops.associateBy { it.name }
@@ -201,13 +195,28 @@ fun ShopRosterQuadrant(
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             shopMap["LCPO"]?.let { shop ->
-                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
+                ShopColumn(
+                    shop = shop,
+                    people = peopleByShop[shop.shopId].orEmpty(),
+                    shopList = shopList,
+                    personViewModel = personViewModel
+                )
             }
             shopMap["Division Managers"]?.let { shop ->
-                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
+                ShopColumn(
+                    shop = shop,
+                    people = peopleByShop[shop.shopId].orEmpty(),
+                    shopList = shopList,
+                    personViewModel = personViewModel
+                )
             }
             shopMap["Maintenance Control"]?.let { shop ->
-                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
+                ShopColumn(
+                    shop = shop,
+                    people = peopleByShop[shop.shopId].orEmpty(),
+                    shopList = shopList,
+                    personViewModel = personViewModel
+                )
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -218,7 +227,12 @@ fun ShopRosterQuadrant(
         ) {
             listOf("Engine", "Metal", "Prop", "Avionics", "Sensor").forEach { name ->
                 shopMap[name]?.let { shop ->
-                    ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
+                    ShopColumn(
+                        shop = shop,
+                        people = peopleByShop[shop.shopId].orEmpty(),
+                        shopList = shopList,
+                        personViewModel = personViewModel
+                    )
                 }
             }
         }
@@ -230,7 +244,10 @@ fun ShopRosterQuadrant(
         ) {
             listOf("Load Cage", "Line Crew", "Tool Room", "QA", "Nights").forEach { name ->
                 shopMap[name]?.let { shop ->
-                    ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
+                    ShopColumn(shop = shop,
+                        people = peopleByShop[shop.shopId].orEmpty(),
+                        shopList = shopList,
+                        personViewModel = personViewModel)
                 }
             }
         }
@@ -241,7 +258,8 @@ fun ShopRosterQuadrant(
 fun ShopColumn(
     shop: Shop,
     people: List<Person>,
-    onPersonClick: (Person) -> Unit,
+    shopList: List<Shop>,
+    personViewModel: PersonViewModel,
     modifier: Modifier = Modifier
 ) {
         // Sorting as specified:
@@ -298,128 +316,243 @@ fun ShopColumn(
 
             // List of people as pills
             sortedPeople.forEach { person ->
-                PersonPill(
+                PersonPillWithMenu(
                     person = person,
-                    onClick = { onPersonClick(person) }
+                    shopList = shopList,
+                    onSave = { updatedPerson ->
+                        // Save to DB (use your ViewModel updatePerson method)
+                        personViewModel.updatePerson(updatedPerson) }
                 )
             }
         }
     }
 
     @Composable
-fun PersonPill(
-    person: Person,
-    onClick: () -> Unit
-) {
-    val isChief = person.rank.startsWith("AMTC") || person.rank.startsWith("AETC")
-    val pillTextStyle = if (isChief) {
-        MaterialTheme.typography.titleLarge.copy(
-            color = (Charcoal),      // deep blue as an example
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 26.sp                // larger, bolder for E7
-        )
-    } else {
-        MaterialTheme.typography.titleLarge.copy(
-            color = (Charcoal),            // or your normal color
-            fontSize = 22.sp
-        )
-    }
-    Card(
-        shape = RoundedCornerShape(15.dp),
-        colors = CardDefaults.cardColors(containerColor = colorForRank(person.rank)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 6.dp)
-            .height(44.dp)
-            .clickable { onClick() }
+    fun PersonPillWithMenu(
+        person: Person,
+        shopList: List<Shop>,
+        onSave: (Person) -> Unit
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            Text(
-                text = "${person.rank} ${person.lastName}, ${person.firstName}",
-                style = pillTextStyle,
-                modifier = Modifier.align(Alignment.Center) // Center in both axes
+        var expanded by remember { mutableStateOf(false) }
+        Box {
+            PersonPill(
+                person = person,
+                onClick = { expanded = true }
             )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                offset = androidx.compose.ui.unit.DpOffset(0.dp, 0.dp), // pops directly below pill
+            ) {
+                PersonDetailsMenuContent(
+                    person = person,
+                    shopList = shopList,
+                    onSave = {
+                        onSave(it)
+                        expanded = false
+                    },
+                    onDismiss = { expanded = false }
+                )
+            }
         }
     }
-}
 
     @Composable
-fun PersonDetailsDialog(
+    fun PersonPill(
+        person: Person,
+        onClick: () -> Unit
+    ) {
+        val isChief = person.rank.startsWith("AMTC") || person.rank.startsWith("AETC")
+        val pillTextStyle = if (isChief) {
+            MaterialTheme.typography.titleLarge.copy(
+                color = (Charcoal),      // deep blue as an example
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 26.sp                // larger, bolder for E7
+            )
+        } else {
+            MaterialTheme.typography.titleLarge.copy(
+                color = (Charcoal),            // or your normal color
+                fontSize = 22.sp
+            )
+        }
+        Card(
+            shape = RoundedCornerShape(15.dp),
+            colors = CardDefaults.cardColors(containerColor = colorForRank(person.rank)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 6.dp)
+                .height(44.dp)
+                .clickable { onClick() }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Text(
+                    text = "${person.rank} ${person.lastName}, ${person.firstName}",
+                    style = pillTextStyle,
+                    modifier = Modifier.align(Alignment.Center) // Center in both axes
+                )
+            }
+        }
+    }
+
+
+    @Composable
+fun PersonDetailsMenuContent(
     person: Person,
     shopList: List<Shop>,
-    onDismiss: () -> Unit,
-    onSave: (Person) -> Unit
+    onSave: (Person) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    // Local state for editable fields
+    // Editable local state
     var selectedShopId by remember { mutableStateOf(person.shopId) }
+    var sld by remember { mutableStateOf(person.status.contains("SLD")) }
     var lv by remember { mutableStateOf(person.status.contains("LV")) }
     var tdy by remember { mutableStateOf(person.status.contains("TDY")) }
     var deployed by remember { mutableStateOf(person.status.contains("Deployed")) }
 
-    AlertDialog(
-        onDismissRequest = { onDismiss() },
-        title = {
-            Text("${person.rank} ${person.lastName}, ${person.firstName}")
-        },
-        text = {
-            Column {
-                // Display all info (non-editable)
-                Text("Rank: ${person.rank}")
-                Text("Phone: ${person.phoneNumber}")
-                Text("Qualifications: ${person.qualifications}")
-                Spacer(Modifier.height(8.dp))
+    Column(Modifier.width(360.dp).padding(16.dp)) {
+        Text(
+            "${person.rank} ${person.lastName}, ${person.firstName}",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF333333) // Charcoal
+            )
+        )
+        Spacer(Modifier.height(4.dp))
+        Text("Rank: ${person.rank}", style = MaterialTheme.typography.titleMedium)
+        Text("Phone: ${person.phoneNumber}", style = MaterialTheme.typography.titleMedium)
+        Text("Qualifications: ${person.qualifications}", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(4.dp))
 
-                // Editable: Shop assignment
-                var shopDropdownExpanded by remember { mutableStateOf(false) }
-                OutlinedButton(onClick = { shopDropdownExpanded = true }) {
-                    Text("Shop: ${shopList.find { it.shopId == selectedShopId }?.name ?: "Unknown"}")
+        // Shop Dropdown (Custom Card menu instead of DropdownMenu)
+        var shopDropdownExpanded by remember { mutableStateOf(false) }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Absolute.Left,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Shop:",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Box {
+                OutlinedButton(
+                    onClick = { shopDropdownExpanded = !shopDropdownExpanded },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black
+                    ),
+                    border = BorderStroke(2.dp, Color.LightGray),
+                    shape = RoundedCornerShape(16.dp),
+                    ) {
+                    Text(shopList.find { it.shopId == selectedShopId }?.name ?: "Unknown")
                 }
-                DropdownMenu(
-                    expanded = shopDropdownExpanded,
-                    onDismissRequest = { shopDropdownExpanded = false }
-                ) {
-                    shopList.forEach { shop ->
-                        DropdownMenuItem(
-                            text = { Text(shop.name) },
-                            onClick = {
-                                selectedShopId = shop.shopId
-                                shopDropdownExpanded = false
+                if (shopDropdownExpanded) {
+                    Card(
+                        modifier = Modifier
+                            .width(250.dp)
+                            .padding(top = 4.dp)
+                            .align(Alignment.TopStart),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column {
+                            shopList.forEach { shop ->
+                                Text(
+                                    shop.name,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedShopId = shop.shopId
+                                            shopDropdownExpanded = false
+                                        }
+                                        .padding(12.dp)
+                                )
                             }
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                // Editable: Status
-                Row {
-                    OutlinedButton(
-                        onClick = { lv = !lv },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text(if (lv) "LV ✔" else "LV")
-                    }
-                    OutlinedButton(
-                        onClick = { tdy = !tdy },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text(if (tdy) "TDY ✔" else "TDY")
-                    }
-                    OutlinedButton(
-                        onClick = { deployed = !deployed }
-                    ) {
-                        Text(if (deployed) "Deployed ✔" else "Deployed")
+                        }
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = {
-                // Compose new status string
+        }
+
+
+        Spacer(Modifier.height(4.dp))
+
+        // Status Toggles
+        Row (
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Absolute.Left,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Status:",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            OutlinedButton(
+                onClick = { sld = !sld },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (sld) Color(0xFFFFE699) else Color.White,
+                    contentColor = if (sld) Color(0xFF000000) else Color.Black
+                ),
+                border = BorderStroke(2.dp, if (sld) Color(0xFFFFD44B) else Color.LightGray),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(end = 4.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) { Text(if (sld) "SLD ✔" else "SLD") }
+            OutlinedButton(
+                onClick = { lv = !lv },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (lv) Color(0xFFCCCCFF) else Color.White,
+                    contentColor = if (lv) Color(0xFF000000) else Color.Black
+                ),
+                border = BorderStroke(2.dp, if (lv) Color(0xFFAFAFFF) else Color.LightGray),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(end = 4.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) { Text(if (lv) "LV ✔" else "LV") }
+            OutlinedButton(
+                onClick = { tdy = !tdy },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (tdy) Color(0xFFCCCCFF) else Color.White,
+                    contentColor = if (tdy) Color(0xFF000000) else Color.Black
+                ),
+                border = BorderStroke(2.dp, if (tdy) Color(0xFFAFAFFF) else Color.LightGray),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(end = 4.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) { Text(if (tdy) "TDY ✔" else "TDY") }
+            OutlinedButton(
+                onClick = { deployed = !deployed },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (deployed) Color(0xFF6699FF) else Color.White,
+                    contentColor = if (deployed) Color(0xFFFFFFFF) else Color.Black
+                ),
+                border = BorderStroke(2.dp, if (deployed) Color(0xFF377AFF) else Color.LightGray),
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) { Text(if (deployed) "DPL ✔" else "DPL") }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Actions
+        Row (
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Button(
+                onClick = {
                 val statusList = mutableListOf<String>()
+                if (sld) statusList.add("SLD")
                 if (lv) statusList.add("LV")
                 if (tdy) statusList.add("TDY")
                 if (deployed) statusList.add("Deployed")
@@ -428,13 +561,25 @@ fun PersonDetailsDialog(
                     status = statusList.joinToString(", ")
                 )
                 onSave(updatedPerson)
-            }) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+            },
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF005724),
+                    contentColor = Color.White
+                )
+            ) { Text("Save") }
+            Spacer(Modifier.width(16.dp))
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(2.dp, Color.Gray),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Gray
+                )
+                ) { Text("Cancel") }
         }
-    )
+    }
 }
+
 }
