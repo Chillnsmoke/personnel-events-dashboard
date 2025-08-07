@@ -1,5 +1,8 @@
 package com.example.personneleventsdashboard
 
+import com.example.personneleventsdashboard.data.PersonRepository
+import com.example.personneleventsdashboard.viewmodel.PersonViewModel
+import com.example.personneleventsdashboard.viewmodel.PersonViewModelFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,7 +16,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.personneleventsdashboard.ui.theme.PersonnelEventsDashboardTheme
-import com.example.personneleventsdashboard.viewmodel.PersonViewModel
 import com.example.personneleventsdashboard.model.Person
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
@@ -57,13 +59,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PersonnelEventsDashboardTheme {
-                // Initialize ViewModels INSIDE setContent
+                // Initialize ViewModels
                 val context = LocalContext.current
+
+                // PersonViewModel with Repository and Factory
+                val personDao = AppDatabaseProvider.getDatabase(context).personDao()
+                val personRepository = PersonRepository(personDao)
                 val personViewModel: PersonViewModel = viewModel(
-                    factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-                        context.applicationContext as Application
-                    )
+                    factory = PersonViewModelFactory(personRepository)
                 )
+
+                // ShopViewModel can stay as-is if it still uses AndroidViewModel
                 val shopViewModel: ShopViewModel = viewModel(
                     factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
                         context.applicationContext as Application
