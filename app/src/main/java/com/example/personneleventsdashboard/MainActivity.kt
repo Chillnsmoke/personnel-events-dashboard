@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
@@ -36,7 +37,10 @@ import androidx.compose.foundation.border
 
 import com.example.personneleventsdashboard.ui.theme.*
 
+import androidx.compose.foundation.clickable
 import android.app.Application
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -46,6 +50,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.personneleventsdashboard.ui.theme.Shop
 import kotlinx.coroutines.flow.Flow
+
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
@@ -75,6 +86,7 @@ class MainActivity : ComponentActivity() {
                         context.applicationContext as Application
                     )
                 )
+                val (selectedPerson, setSelectedPerson) = remember { mutableStateOf<Person?>(null) }
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -94,7 +106,8 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 ShopRosterQuadrant(
                                     shops = shopViewModel.shops.collectAsState(initial = emptyList()).value,
-                                    people = personViewModel.people.collectAsState(initial = emptyList()).value
+                                    people = personViewModel.people.collectAsState(initial = emptyList()).value,
+                                    onPersonClick = setSelectedPerson
                                 )
                             }
                             Box(
@@ -129,7 +142,19 @@ class MainActivity : ComponentActivity() {
                     }
 
                 }
+                if (selectedPerson != null) {
+                    PersonDetailsDialog(
+                        person = selectedPerson,
+                        shopList = shopViewModel.shops.collectAsState(initial = emptyList()).value,
+                        onDismiss = { setSelectedPerson(null) },
+                        onSave = { updatedPerson ->
+                            personViewModel.updatePerson(updatedPerson)
+                            setSelectedPerson(null)
+                        }
+                    )
+                }
             }
+
         }
 
         // Data seeding code here...
@@ -159,8 +184,12 @@ fun colorForRank(rank: String): Color = when (rank) {
     else             -> Color.LightGray // fallback/default color
 }
 
-@Composable
-fun ShopRosterQuadrant(shops: List<Shop>, people: List<Person>) {
+    @Composable
+fun ShopRosterQuadrant(
+    shops: List<Shop>,
+    people: List<Person>,
+    onPersonClick: (Person) -> Unit
+) {
     // Map shops by name for quick lookup
     val shopMap = shops.associateBy { it.name }
     val peopleByShop = people.groupBy { it.shopId }
@@ -172,13 +201,13 @@ fun ShopRosterQuadrant(shops: List<Shop>, people: List<Person>) {
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             shopMap["LCPO"]?.let { shop ->
-                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty())
+                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
             }
             shopMap["Division Managers"]?.let { shop ->
-                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty())
+                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
             }
             shopMap["Maintenance Control"]?.let { shop ->
-                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty())
+                ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -189,7 +218,7 @@ fun ShopRosterQuadrant(shops: List<Shop>, people: List<Person>) {
         ) {
             listOf("Engine", "Metal", "Prop", "Avionics", "Sensor").forEach { name ->
                 shopMap[name]?.let { shop ->
-                    ShopColumn(shop, peopleByShop[shop.shopId].orEmpty())
+                    ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
                 }
             }
         }
@@ -201,7 +230,7 @@ fun ShopRosterQuadrant(shops: List<Shop>, people: List<Person>) {
         ) {
             listOf("Load Cage", "Line Crew", "Tool Room", "QA", "Nights").forEach { name ->
                 shopMap[name]?.let { shop ->
-                    ShopColumn(shop, peopleByShop[shop.shopId].orEmpty())
+                    ShopColumn(shop, peopleByShop[shop.shopId].orEmpty(), onPersonClick)
                 }
             }
         }
@@ -209,7 +238,12 @@ fun ShopRosterQuadrant(shops: List<Shop>, people: List<Person>) {
 }
 
     @Composable
-    fun ShopColumn(shop: Shop, people: List<Person>, modifier: Modifier = Modifier) {
+fun ShopColumn(
+    shop: Shop,
+    people: List<Person>,
+    onPersonClick: (Person) -> Unit,
+    modifier: Modifier = Modifier
+) {
         // Sorting as specified:
         val rankOrder = mapOf(
             "AMTCM" to 0, "AETCM" to 0,
@@ -264,45 +298,143 @@ fun ShopRosterQuadrant(shops: List<Shop>, people: List<Person>) {
 
             // List of people as pills
             sortedPeople.forEach { person ->
-                PersonPill(person)
-            }
-        }
-    }
-
-    @Composable
-    fun PersonPill(person: Person) {
-        val isChief = person.rank.startsWith("AMTC") || person.rank.startsWith("AETC")
-        val pillTextStyle = if (isChief) {
-            MaterialTheme.typography.titleLarge.copy(
-                color = (Charcoal),      // deep blue as an example
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 26.sp                // larger, bolder for E7
-            )
-        } else {
-            MaterialTheme.typography.titleLarge.copy(
-                color = (Charcoal),            // or your normal color
-                fontSize = 22.sp
-            )
-        }
-        Card(
-            shape = RoundedCornerShape(15.dp),
-            colors = CardDefaults.cardColors(containerColor = colorForRank(person.rank)),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 6.dp)
-                .height(44.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                Text(
-                    text = "${person.rank} ${person.lastName}, ${person.firstName}",
-                    style = pillTextStyle,
-                    modifier = Modifier.align(Alignment.Center) // Center in both axes
+                PersonPill(
+                    person = person,
+                    onClick = { onPersonClick(person) }
                 )
             }
         }
     }
 
+    @Composable
+fun PersonPill(
+    person: Person,
+    onClick: () -> Unit
+) {
+    val isChief = person.rank.startsWith("AMTC") || person.rank.startsWith("AETC")
+    val pillTextStyle = if (isChief) {
+        MaterialTheme.typography.titleLarge.copy(
+            color = (Charcoal),      // deep blue as an example
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 26.sp                // larger, bolder for E7
+        )
+    } else {
+        MaterialTheme.typography.titleLarge.copy(
+            color = (Charcoal),            // or your normal color
+            fontSize = 22.sp
+        )
+    }
+    Card(
+        shape = RoundedCornerShape(15.dp),
+        colors = CardDefaults.cardColors(containerColor = colorForRank(person.rank)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 6.dp)
+            .height(44.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Text(
+                text = "${person.rank} ${person.lastName}, ${person.firstName}",
+                style = pillTextStyle,
+                modifier = Modifier.align(Alignment.Center) // Center in both axes
+            )
+        }
+    }
+}
+
+    @Composable
+fun PersonDetailsDialog(
+    person: Person,
+    shopList: List<Shop>,
+    onDismiss: () -> Unit,
+    onSave: (Person) -> Unit
+) {
+    // Local state for editable fields
+    var selectedShopId by remember { mutableStateOf(person.shopId) }
+    var lv by remember { mutableStateOf(person.status.contains("LV")) }
+    var tdy by remember { mutableStateOf(person.status.contains("TDY")) }
+    var deployed by remember { mutableStateOf(person.status.contains("Deployed")) }
+
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = {
+            Text("${person.rank} ${person.lastName}, ${person.firstName}")
+        },
+        text = {
+            Column {
+                // Display all info (non-editable)
+                Text("Rank: ${person.rank}")
+                Text("Phone: ${person.phoneNumber}")
+                Text("Qualifications: ${person.qualifications}")
+                Spacer(Modifier.height(8.dp))
+
+                // Editable: Shop assignment
+                var shopDropdownExpanded by remember { mutableStateOf(false) }
+                OutlinedButton(onClick = { shopDropdownExpanded = true }) {
+                    Text("Shop: ${shopList.find { it.shopId == selectedShopId }?.name ?: "Unknown"}")
+                }
+                DropdownMenu(
+                    expanded = shopDropdownExpanded,
+                    onDismissRequest = { shopDropdownExpanded = false }
+                ) {
+                    shopList.forEach { shop ->
+                        DropdownMenuItem(
+                            text = { Text(shop.name) },
+                            onClick = {
+                                selectedShopId = shop.shopId
+                                shopDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Editable: Status
+                Row {
+                    OutlinedButton(
+                        onClick = { lv = !lv },
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text(if (lv) "LV ✔" else "LV")
+                    }
+                    OutlinedButton(
+                        onClick = { tdy = !tdy },
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text(if (tdy) "TDY ✔" else "TDY")
+                    }
+                    OutlinedButton(
+                        onClick = { deployed = !deployed }
+                    ) {
+                        Text(if (deployed) "Deployed ✔" else "Deployed")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                // Compose new status string
+                val statusList = mutableListOf<String>()
+                if (lv) statusList.add("LV")
+                if (tdy) statusList.add("TDY")
+                if (deployed) statusList.add("Deployed")
+                val updatedPerson = person.copy(
+                    shopId = selectedShopId,
+                    status = statusList.joinToString(", ")
+                )
+                onSave(updatedPerson)
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
 }
