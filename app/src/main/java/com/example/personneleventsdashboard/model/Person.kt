@@ -12,5 +12,6 @@ data class Person(
     val shopId: Int,
     val phoneNumber: String,
     val qualifications: String,
+    val dutySection: String = "1",
     val status: String = "Normal" // default value
 )

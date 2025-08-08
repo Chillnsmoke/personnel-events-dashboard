@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import kotlin.collections.joinToString
 
 import com.example.personneleventsdashboard.ui.theme.*
 
@@ -119,7 +120,7 @@ class MainActivity : ComponentActivity() {
                                     .weight(1f) // 25%
                                     .fillMaxWidth()
                             ) {
-                                PlaceholderQuadrant("Qualification Filter")
+                                FilterAndManageQuadrant(shopList = shopList)
                             }
                         }
                         // RIGHT SIDE
@@ -130,14 +131,14 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Box(
                                 Modifier
-                                    .weight(1f) // 50%
+                                    .weight(3f) // 75%
                                     .fillMaxWidth()
                             ) {
                                 PlaceholderQuadrant("Event Calendar")
                             }
                             Box(
                                 Modifier
-                                    .weight(1f) // 50%
+                                    .weight(1f) // 25%
                                     .fillMaxWidth()
                             ) {
                                 PlaceholderQuadrant("Status Tracker")
@@ -152,12 +153,156 @@ class MainActivity : ComponentActivity() {
 
         // Data seeding code here...
         lifecycleScope.launch {
-            // (leave your seeding code unchanged)
+            val db = AppDatabaseProvider.getDatabase(this@MainActivity)
+            val shopDao = db.shopDao()
+            val personDao = db.personDao()
+
+            if (shopDao.getAllShops().first().isEmpty() && personDao.getAllPersons().first()
+                    .isEmpty()
+            ) {
+                val shopNames = listOf(
+                    "LCPO", "Division Managers", "Engine", "Prop", "Metal", "Load Cage", "Nights",
+                    "Maintenance Control", "Avionics", "Sensor", "Tool Room", "QA", "Line Crew"
+                )
+                val shopIds = mutableListOf<Long>()
+                for (name in shopNames) {
+                    shopIds.add(shopDao.insertShop(Shop(name = name)))
+                }
+
+                val firstNames = listOf(
+                    "Alex",
+                    "Jordan",
+                    "Taylor",
+                    "Morgan",
+                    "Casey",
+                    "Sydney",
+                    "Jamie",
+                    "Avery",
+                    "Riley",
+                    "Logan",
+                    "Skyler",
+                    "Bailey",
+                    "Hayden",
+                    "Harper",
+                    "Quinn",
+                    "Sawyer",
+                    "Emerson",
+                    "Rowan",
+                    "Drew",
+                    "Reese"
+                )
+                val lastNames = listOf(
+                    "Smith",
+                    "Johnson",
+                    "Williams",
+                    "Brown",
+                    "Jones",
+                    "Garcia",
+                    "Miller",
+                    "Davis",
+                    "Rodriguez",
+                    "Martinez",
+                    "Hernandez",
+                    "Lopez",
+                    "Gonzalez",
+                    "Wilson",
+                    "Anderson",
+                    "Thomas",
+                    "Taylor",
+                    "Moore",
+                    "Jackson",
+                    "Martin"
+                )
+
+                fun randomName(i: Int) = Pair(
+                    firstNames[i % firstNames.size],
+                    lastNames[(i / firstNames.size) % lastNames.size]
+                )
+
+                fun phoneFor(i: Int) = "555-%04d".format(1000 + i)
+                fun dutySection(rank: String, shopName: String, counter: Int): String {
+                    return when {
+                        shopName == "Nights" -> "Nights"
+                        rank.startsWith("AMTC") || rank.startsWith("AETC") || rank.contains("CS") || rank == "AMTCM" || rank == "AETCM" -> "Days"
+                        else -> ((counter % 4) + 1).toString()
+                    }
+                }
+
+                var p = 0
+                val persons = mutableListOf<Person>()
+
+                fun addPerson(
+                    rank: String,
+                    shopIndex: Int,
+                    qual: String = "",
+                    status: String = "Normal"
+                ) {
+                    val name = randomName(p)
+                    val shopName = shopNames[shopIndex]
+                    val section = dutySection(rank, shopName, p)
+                    persons.add(
+                        Person(
+                            lastName = name.second,
+                            firstName = name.first,
+                            rank = rank,
+                            shopId = shopIds[shopIndex].toInt(),
+                            phoneNumber = phoneFor(p++),
+                            qualifications = qual,
+                            status = status,
+                            dutySection = section
+                        )
+                    )
+                }
+
+                // Repeat previous logic to populate personnel using addPerson()
+                addPerson("AMTCM", 0)
+                addPerson("AMTCS", 1)
+                addPerson("AETCS", 1)
+
+                (2..7).forEach { addPerson("AMTC", it) }
+                (8..12).forEach { addPerson("AETC", it) }
+
+                listOf(2, 2, 2, 2, 1, 1).forEachIndexed { idx, count ->
+                    repeat(count) { addPerson("AMT1", 2 + idx, "Load Master") }
+                }
+
+                (8..12).forEach { shop -> repeat(2) { addPerson("AET1", shop, "MSO") } }
+
+                repeat(10) { addPerson("AMT2", listOf(2, 3, 4, 5)[it % 4], "Drop Master") }
+                repeat(5) { addPerson("AMT2", listOf(2, 3, 4, 5)[it % 4], "Load Master") }
+
+                repeat(6) { addPerson("AET2", 8, "MSO") }
+                repeat(4) { addPerson("AET2", 9, "MSO") }
+                repeat(2) { addPerson("AET2", 10, "MSO") }
+                listOf(8, 9, 10).forEachIndexed { i, shop -> addPerson("AET2", shop, "MSOT") }
+
+                val amt3Shops = listOf(2, 3, 4, 5, 6, 7, 12)
+                repeat(10) { addPerson("AMT3", amt3Shops[it % amt3Shops.size], "Drop Master") }
+                repeat(5) { addPerson("AMT3", amt3Shops[(it + 2) % amt3Shops.size], "DMT") }
+
+                listOf(
+                    Pair(12, 2),
+                    Pair(10, 2),
+                    Pair(6, 4),
+                    Pair(8, 4),
+                    Pair(9, 3)
+                ).forEach { (shop, count) ->
+                    repeat(count) {
+                        val qual =
+                            if (persons.count { it.rank == "AET3" && it.qualifications == "MSO" } < 10) "MSO" else "MSOT"
+                        addPerson("AET3", shop, qual)
+                    }
+                }
+
+                repeat(6) { addPerson("AN", 12) }
+
+                persons.forEach { personDao.insertPerson(it) }
+            }
         }
     }
 
 
-    @Composable
+        @Composable
 fun PlaceholderQuadrant(label: String) {
     Text(
         text = label,
@@ -414,7 +559,7 @@ fun PersonDetailsMenuContent(
 
     Column(Modifier.width(360.dp).padding(16.dp)) {
         Text(
-            "${person.rank} ${person.lastName}, ${person.firstName}",
+            "${person.rank} ${person.firstName} ${person.lastName}",
             style = MaterialTheme.typography.titleLarge.copy(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -422,8 +567,8 @@ fun PersonDetailsMenuContent(
             )
         )
         Spacer(Modifier.height(4.dp))
-        Text("Rank: ${person.rank}", style = MaterialTheme.typography.titleMedium)
         Text("Phone: ${person.phoneNumber}", style = MaterialTheme.typography.titleMedium)
+        Text("Duty Section: ${person.dutySection}", style = MaterialTheme.typography.titleMedium)
         Text("Qualifications: ${person.qualifications}", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(4.dp))
 
@@ -582,4 +727,424 @@ fun PersonDetailsMenuContent(
     }
 }
 
+    @Composable
+    fun FilterAndManageQuadrant(shopList: List<Shop>) {
+        val personViewModel: PersonViewModel = viewModel()
+        val people by personViewModel.people.collectAsState()
+
+        // Get all available filter options
+        val allQualifications = remember(people) {
+            people.mapNotNull { it.qualifications }
+                .flatMap { it.split(",").map { q -> q.trim() } }
+                .distinct()
+                .sorted()
+        }
+
+        val allRanks = remember(people) {
+            people.map { it.rank }.distinct().sorted()
+        }
+
+        val allSections = remember(people) {
+            people.map { it.dutySection }.distinct().sorted()
+        }
+
+        val allStatuses = remember(people) {
+            people.map { it.status }.distinct().filter { it.isNotEmpty() }.sorted()
+        }
+
+        // State for up to 5 filters
+        var filter1 by remember { mutableStateOf<Pair<String, String>?>(null) } // (FilterType, FilterValue)
+        var filter2 by remember { mutableStateOf<Pair<String, String>?>(null) }
+        var filter3 by remember { mutableStateOf<Pair<String, String>?>(null) }
+        var filter4 by remember { mutableStateOf<Pair<String, String>?>(null) }
+        var filter5 by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+        // Apply all active filters
+        val filteredPeople = remember(filter1, filter2, filter3, filter4, filter5, people) {
+            var result = people
+
+            filter1?.let { (type, value) ->
+                result = result.filter { person ->
+                    when (type) {
+                        "Qualification" -> person.qualifications.contains(value)
+                        "Rank" -> person.rank == value
+                        "Section" -> person.dutySection == value
+                        "Status" -> person.status.contains(value)
+                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
+                        else -> true
+                    }
+                }
+            }
+
+            filter2?.let { (type, value) ->
+                result = result.filter { person ->
+                    when (type) {
+                        "Qualification" -> person.qualifications.contains(value)
+                        "Rank" -> person.rank == value
+                        "Section" -> person.dutySection == value
+                        "Status" -> person.status.contains(value)
+                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
+                        else -> true
+                    }
+                }
+            }
+
+            filter3?.let { (type, value) ->
+                result = result.filter { person ->
+                    when (type) {
+                        "Qualification" -> person.qualifications.contains(value)
+                        "Rank" -> person.rank == value
+                        "Section" -> person.dutySection == value
+                        "Status" -> person.status.contains(value)
+                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
+                        else -> true
+                    }
+                }
+            }
+
+            filter4?.let { (type, value) ->
+                result = result.filter { person ->
+                    when (type) {
+                        "Qualification" -> person.qualifications.contains(value)
+                        "Rank" -> person.rank == value
+                        "Section" -> person.dutySection == value
+                        "Status" -> person.status.contains(value)
+                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
+                        else -> true
+                    }
+                }
+            }
+
+            filter5?.let { (type, value) ->
+                result = result.filter { person ->
+                    when (type) {
+                        "Qualification" -> person.qualifications.contains(value)
+                        "Rank" -> person.rank == value
+                        "Section" -> person.dutySection == value
+                        "Status" -> person.status.contains(value)
+                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
+                        else -> true
+                    }
+                }
+            }
+
+            result
+        }
+
+        // Split filtered people into columns (8 per column, up to 5 columns)
+        val resultColumns = remember(filteredPeople) {
+            if (filteredPeople.isEmpty()) {
+                emptyList()
+            } else {
+                filteredPeople.chunked(8).take(5) // Max 5 columns, 8 people per column
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            Text(
+                text = "Filter/Search & Manage Personnel",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // Main content area with filters and results
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f) // Take up most of the space, leaving room for add/edit/delete below
+            ) {
+                // Left side - Filter options (narrow column)
+                Column(
+                    modifier = Modifier
+                        .width(400.dp)
+                        .padding(end = 8.dp)
+                ) {
+                    // First filter (always show)
+                    FilterDropdown(
+                        label = "Select filter options:",
+                        currentFilter = filter1,
+                        onFilterSelected = { filter1 = it },
+                        onFilterCleared = { filter1 = null },
+                        allQualifications = allQualifications,
+                        allRanks = allRanks,
+                        allSections = allSections,
+                        allStatuses = allStatuses,
+                        shopList = shopList
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Additional filters (show if previous filter is selected)
+                    if (filter1 != null) {
+                        FilterDropdown(
+                            label = "Add filter:",
+                            currentFilter = filter2,
+                            onFilterSelected = { filter2 = it },
+                            onFilterCleared = { filter2 = null },
+                            allQualifications = allQualifications,
+                            allRanks = allRanks,
+                            allSections = allSections,
+                            allStatuses = allStatuses,
+                            shopList = shopList
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    if (filter2 != null) {
+                        FilterDropdown(
+                            label = "Add filter:",
+                            currentFilter = filter3,
+                            onFilterSelected = { filter3 = it },
+                            onFilterCleared = { filter3 = null },
+                            allQualifications = allQualifications,
+                            allRanks = allRanks,
+                            allSections = allSections,
+                            allStatuses = allStatuses,
+                            shopList = shopList
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    if (filter3 != null) {
+                        FilterDropdown(
+                            label = "Add filter:",
+                            currentFilter = filter4,
+                            onFilterSelected = { filter4 = it },
+                            onFilterCleared = { filter4 = null },
+                            allQualifications = allQualifications,
+                            allRanks = allRanks,
+                            allSections = allSections,
+                            allStatuses = allStatuses,
+                            shopList = shopList
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    if (filter4 != null) {
+                        FilterDropdown(
+                            label = "Add filter:",
+                            currentFilter = filter5,
+                            onFilterSelected = { filter5 = it },
+                            onFilterCleared = { filter5 = null },
+                            allQualifications = allQualifications,
+                            allRanks = allRanks,
+                            allSections = allSections,
+                            allStatuses = allStatuses,
+                            shopList = shopList
+                        )
+                    }
+                }
+
+                // Right side - Results columns
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Display up to 5 columns of results
+                    resultColumns.forEachIndexed { columnIndex, columnPeople ->
+                        Column(
+                            modifier = Modifier.width(380.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Results ${columnIndex + 1}",
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+
+                            columnPeople.forEach { person ->
+                                ReadOnlyPersonPillWithPopup(person, shopList)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Bottom area - Reserved for Add/Edit/Delete functions
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Add/Edit/Delete Functions (Coming Soon)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun FilterDropdown(
+        label: String,
+        currentFilter: Pair<String, String>?,
+        onFilterSelected: (Pair<String, String>) -> Unit,
+        onFilterCleared: () -> Unit,
+        allQualifications: List<String>,
+        allRanks: List<String>,
+        allSections: List<String>,
+        allStatuses: List<String>,
+        shopList: List<Shop>
+    ) {
+        var showTypeMenu by remember { mutableStateOf(false) }
+        var showValueMenu by remember { mutableStateOf(false) }
+        var selectedType by remember { mutableStateOf<String?>(null) }
+
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            // Filter type selection
+            Box {
+                OutlinedButton(
+                    onClick = { showTypeMenu = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black
+                    ),
+                    border = BorderStroke(1.dp, Color.Gray)
+                ) {
+                    Text(
+                        text = currentFilter?.first ?: "Select Type",
+                        fontSize = 12.sp
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showTypeMenu,
+                    onDismissRequest = { showTypeMenu = false }
+                ) {
+                    listOf("Qualification", "Rank", "Section", "Status", "Shop").forEach { type ->
+                        DropdownMenuItem(
+                            onClick = {
+                                selectedType = type
+                                showTypeMenu = false
+                                showValueMenu = true
+                            },
+                            text = { Text(type, fontSize = 12.sp) }
+                        )
+                    }
+                }
+            }
+
+            // Filter value selection
+            if (selectedType != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Box {
+                    OutlinedButton(
+                        onClick = { showValueMenu = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black
+                        ),
+                        border = BorderStroke(1.dp, Color.Gray)
+                    ) {
+                        Text(
+                            text = currentFilter?.second ?: "Select Value",
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showValueMenu,
+                        onDismissRequest = { showValueMenu = false }
+                    ) {
+                        val options = when (selectedType) {
+                            "Qualification" -> allQualifications
+                            "Rank" -> allRanks
+                            "Section" -> allSections
+                            "Status" -> allStatuses
+                            "Shop" -> shopList.map { it.name }
+                            else -> emptyList()
+                        }
+
+                        options.forEach { option ->
+                            DropdownMenuItem(
+                                onClick = {
+                                    onFilterSelected(Pair(selectedType!!, option))
+                                    showValueMenu = false
+                                    selectedType = null
+                                },
+                                text = { Text(option, fontSize = 12.sp) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Clear filter button
+            if (currentFilter != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = {
+                        onFilterCleared()
+                        selectedType = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Red.copy(alpha = 0.1f),
+                        contentColor = Color.Red
+                    ),
+                    border = BorderStroke(1.dp, Color.Red)
+                ) {
+                    Text("Clear", fontSize = 10.sp)
+                }
+            }
+        }
+    }
+
+
+    @Composable
+    fun ReadOnlyPersonPillWithPopup(person: Person, shopList: List<Shop>) {
+        var expanded by remember { mutableStateOf(false) }
+        val shopName = getShopNameById(person.shopId, shopList)
+
+
+        Box {
+            PersonPill(
+                person = person,
+                onClick = { expanded = true }
+            )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                offset = androidx.compose.ui.unit.DpOffset(0.dp, 0.dp)
+            ) {
+                Card(
+                    modifier = Modifier.width(380.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Name: ${person.rank} ${person.lastName}")
+                        Text("Phone: ${person.phoneNumber}")
+                        Text("Shop: $shopName")
+                        Text("Section: ${person.dutySection}")
+                        Text("Qualifications: ${person.qualifications}")
+                    }
+                }
+            }
+        }
+    }
+
+    fun getShopNameById(shopId: Int, shopList: List<Shop>): String {
+        return shopList.firstOrNull { it.shopId == shopId }?.name ?: "Unknown"
+    }
+
+
 }
+

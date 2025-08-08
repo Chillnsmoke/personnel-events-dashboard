@@ -7,7 +7,7 @@ import com.example.personneleventsdashboard.model.Shop
 
 @Database(
     entities = [Person::class, Shop::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
