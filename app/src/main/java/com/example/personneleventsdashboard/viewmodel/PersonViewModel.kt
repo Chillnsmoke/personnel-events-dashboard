@@ -30,5 +30,10 @@ class PersonViewModel(
         }
     }
 
+    fun insertPerson(person: Person) {
+        viewModelScope.launch {
+            repository.insertPerson(person)
+        }
+    }
     // Optional: add insert, delete, getPersonById, search methods as needed
 }
