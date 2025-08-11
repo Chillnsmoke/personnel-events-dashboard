@@ -61,6 +61,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Divider
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
@@ -1020,6 +1024,456 @@ fun PersonDetailsMenuContent(
             )
         }
 
+        @Composable
+        fun PersonSelectorDialog(
+            people: List<Person>,
+            shopList: List<Shop>,
+            onPersonSelected: (Person) -> Unit,
+            onDismiss: () -> Unit
+        ) {
+            var searchQuery by remember { mutableStateOf("") }
+
+            // Filter people based on search (name only)
+            val filteredPeople = remember(searchQuery, people) {
+                val trimmedQuery = searchQuery.trim()
+                people.filter { person ->
+                    trimmedQuery.isEmpty() ||
+                            person.firstName.contains(trimmedQuery, ignoreCase = true) ||
+                            person.lastName.contains(trimmedQuery, ignoreCase = true)
+                }.sortedWith(compareBy({ it.lastName }, { it.firstName }))
+            }
+
+            AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Text(
+                        "Select Person to Edit",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .width(400.dp)
+                            .height(500.dp)
+                    ) {
+                        // Search bar
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            label = { Text("Search by name") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Text("X", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            "${filteredPeople.size} people found",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // People list
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(filteredPeople) { person ->
+                                val shopName = shopList.find { it.shopId == person.shopId }?.name ?: "Unknown"
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onPersonSelected(person) },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = colorForRank(person.rank).copy(alpha = 0.3f)
+                                    ),
+                                    border = BorderStroke(1.dp, colorForRank(person.rank))
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                "${person.rank} ${person.lastName}, ${person.firstName}",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+                                            Text(
+                                                "Shop: $shopName | Section: ${person.dutySection}",
+                                                fontSize = 12.sp,
+                                                color = Color.Gray
+                                            )
+                                        }
+                                        Text(
+                                            "Click to Edit →",
+                                            fontSize = 12.sp,
+                                            color = Color.Blue,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    OutlinedButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        @Composable
+        fun EditPersonDialog(
+            person: Person,
+            shopList: List<Shop>,
+            allQualifications: List<String>,
+            allRanks: List<String>,
+            allSections: List<String>,
+            onDismiss: () -> Unit,
+            onSave: (Person) -> Unit,
+            onSaveAndEditAnother: (Person) -> Unit,
+            onDelete: (Person) -> Unit
+        ) {
+            var firstName by remember { mutableStateOf(person.firstName) }
+            var lastName by remember { mutableStateOf(person.lastName) }
+            var selectedRank by remember { mutableStateOf(person.rank) }
+            var selectedShopId by remember { mutableStateOf(person.shopId) }
+            var phoneNumber by remember { mutableStateOf(person.phoneNumber) }
+            var selectedQualifications by remember {
+                mutableStateOf(
+                    person.qualifications.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                )
+            }
+            var selectedSection by remember { mutableStateOf(person.dutySection) }
+
+            var showRankDropdown by remember { mutableStateOf(false) }
+            var showShopDropdown by remember { mutableStateOf(false) }
+            var showQualDropdown by remember { mutableStateOf(false) }
+            var showSectionDropdown by remember { mutableStateOf(false) }
+            var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+            val isFormValid = firstName.isNotBlank() && lastName.isNotBlank() &&
+                    selectedRank.isNotBlank() && selectedShopId > 0 &&
+                    phoneNumber.filter { it.isDigit() }.length == 10 &&
+                    selectedSection.isNotBlank()
+
+            if (showDeleteConfirmation) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirmation = false },
+                    title = {
+                        Text(
+                            "Confirm Delete",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Red
+                        )
+                    },
+                    text = {
+                        Text(
+                            "Are you sure you want to delete ${person.rank} ${person.lastName}, ${person.firstName}? This action cannot be undone.",
+                            fontSize = 16.sp
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                onDelete(person)
+                                showDeleteConfirmation = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Red
+                            )
+                        ) {
+                            Text("Delete", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(onClick = { showDeleteConfirmation = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Column (
+                        modifier = Modifier.width(400.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ){
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                        Text("Edit Person", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // Delete button below title
+                        OutlinedButton(
+                            onClick = { showDeleteConfirmation = true },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Red.copy(alpha = 0.1f),
+                                contentColor = Color.Red
+                            ),
+                            border = BorderStroke(2.dp, Color.Red)
+                        ) {
+                            Text("Delete Person", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                        }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.width(400.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Name fields
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = firstName,
+                                onValueChange = { firstName = it },
+                                label = { Text("First Name") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = lastName,
+                                onValueChange = { lastName = it },
+                                label = { Text("Last Name") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // Phone number
+                        OutlinedTextField(
+                            value = phoneNumber,
+                            onValueChange = { input ->
+                                val digitsOnly = input.filter { it.isDigit() }
+                                if (digitsOnly.length <= 10) {
+                                    phoneNumber = digitsOnly
+                                }
+                            },
+                            label = { Text("Phone Number") },
+                            placeholder = { Text("5551234567") },
+                            modifier = Modifier.fillMaxWidth()
+                                .onFocusChanged { focusState ->
+                                    if (!focusState.isFocused && phoneNumber.length == 10) {
+                                        phoneNumber = "(${phoneNumber.take(3)}) ${phoneNumber.drop(3).take(3)}-${phoneNumber.drop(6)}"
+                                    }
+                                },
+                            singleLine = true,
+                            supportingText = {
+                                Text("Enter 10 digits - will format when complete", fontSize = 10.sp)
+                            }
+                        )
+
+                        // Rank dropdown
+                        Box {
+                            OutlinedButton(
+                                onClick = { showRankDropdown = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text(selectedRank)
+                            }
+                            DropdownMenu(
+                                expanded = showRankDropdown,
+                                onDismissRequest = { showRankDropdown = false }
+                            ) {
+                                allRanks.forEach { rank ->
+                                    DropdownMenuItem(
+                                        onClick = {
+                                            selectedRank = rank
+                                            showRankDropdown = false
+                                        },
+                                        text = { Text(rank) }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Shop dropdown
+                        Box {
+                            OutlinedButton(
+                                onClick = { showShopDropdown = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text(shopList.find { it.shopId == selectedShopId }?.name ?: "Select Shop")
+                            }
+                            DropdownMenu(
+                                expanded = showShopDropdown,
+                                onDismissRequest = { showShopDropdown = false }
+                            ) {
+                                shopList.forEach { shop ->
+                                    DropdownMenuItem(
+                                        onClick = {
+                                            selectedShopId = shop.shopId
+                                            showShopDropdown = false
+                                        },
+                                        text = { Text(shop.name) }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Section dropdown
+                        Box {
+                            OutlinedButton(
+                                onClick = { showSectionDropdown = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text(selectedSection)
+                            }
+                            DropdownMenu(
+                                expanded = showSectionDropdown,
+                                onDismissRequest = { showSectionDropdown = false }
+                            ) {
+                                allSections.forEach { section ->
+                                    DropdownMenuItem(
+                                        onClick = {
+                                            selectedSection = section
+                                            showSectionDropdown = false
+                                        },
+                                        text = { Text(section) }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Qualifications
+                        Text("Qualifications:", fontWeight = FontWeight.Bold)
+                        Box {
+                            OutlinedButton(
+                                onClick = { showQualDropdown = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text(
+                                    if (selectedQualifications.isEmpty()) "Select Qualifications"
+                                    else selectedQualifications.joinToString(", ")
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showQualDropdown,
+                                onDismissRequest = { showQualDropdown = false }
+                            ) {
+                                allQualifications.forEach { qual ->
+                                    val isSelected = selectedQualifications.contains(qual)
+                                    DropdownMenuItem(
+                                        onClick = {
+                                            selectedQualifications = if (isSelected) {
+                                                selectedQualifications - qual
+                                            } else {
+                                                selectedQualifications + qual
+                                            }
+                                        },
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(if (isSelected) "✓ $qual" else qual)
+                                            }
+                                        }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    onClick = { showQualDropdown = false },
+                                    text = { Text("Done", fontWeight = FontWeight.Bold) }
+                                )
+                            }
+                        }
+
+                        if (selectedQualifications.isNotEmpty()) {
+                            Text(
+                                "Selected: ${selectedQualifications.joinToString(", ")}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                val updatedPerson = person.copy(
+                                    firstName = firstName.trim(),
+                                    lastName = lastName.trim(),
+                                    rank = selectedRank,
+                                    shopId = selectedShopId,
+                                    phoneNumber = phoneNumber,
+                                    qualifications = selectedQualifications.joinToString(", "),
+                                    dutySection = selectedSection
+                                )
+                                onSaveAndEditAnother(updatedPerson)
+                            },
+                            enabled = isFormValid,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Blue.copy(alpha = 0.8f)
+                            )
+                        ) {
+                            Text("Save & Edit Another")
+                        }
+
+                        Button(
+                            onClick = {
+                                val updatedPerson = person.copy(
+                                    firstName = firstName.trim(),
+                                    lastName = lastName.trim(),
+                                    rank = selectedRank,
+                                    shopId = selectedShopId,
+                                    phoneNumber = phoneNumber,
+                                    qualifications = selectedQualifications.joinToString(", "),
+                                    dutySection = selectedSection
+                                )
+                                onSave(updatedPerson)
+                            },
+                            enabled = isFormValid,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Green.copy(alpha = 0.8f)
+                            )
+                        ) {
+                            Text("Save")
+                        }
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
         val allRanks = remember(people) {
             people.map { it.rank }.distinct().sorted()
         }
@@ -1283,6 +1737,8 @@ fun PersonDetailsMenuContent(
             ) {
                 // Add Person Button
                 var showAddPersonDialog by remember { mutableStateOf(false) }
+                var showPersonSelectorDialog by remember { mutableStateOf(false) }
+                var selectedPersonToEdit by remember { mutableStateOf<Person?>(null) }
 
                 OutlinedButton(
                     onClick = { showAddPersonDialog = true },
@@ -1296,9 +1752,9 @@ fun PersonDetailsMenuContent(
                     Text("Add Person", fontWeight = FontWeight.Bold)
                 }
 
-                // Edit Person Button (placeholder for now)
+                // Edit Person Button
                 OutlinedButton(
-                    onClick = { /* TODO: Implement edit person */ },
+                    onClick = { showPersonSelectorDialog = true },
                     modifier = Modifier.width(180.dp).height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Blue.copy(alpha = 0.1f),
@@ -1307,6 +1763,45 @@ fun PersonDetailsMenuContent(
                     border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.8f))
                 ) {
                     Text("Edit Person", fontWeight = FontWeight.Bold)
+                }
+
+                // Person Selector Dialog
+                if (showPersonSelectorDialog) {
+                    PersonSelectorDialog(
+                        people = people,
+                        shopList = shopList,
+                        onPersonSelected = { person ->
+                            selectedPersonToEdit = person
+                            showPersonSelectorDialog = false
+                        },
+                        onDismiss = { showPersonSelectorDialog = false }
+                    )
+                }
+
+                // Edit Person Dialog
+                selectedPersonToEdit?.let { person ->
+                    EditPersonDialog(
+                        person = person,
+                        shopList = shopList,
+                        allQualifications = allQualifications,
+                        allRanks = allRanks,
+                        allSections = allSections,
+                        onDismiss = { selectedPersonToEdit = null },
+                        onSave = { updatedPerson ->
+                            personViewModel.updatePerson(updatedPerson)
+                            selectedPersonToEdit = null
+                        },
+                        onSaveAndEditAnother = { updatedPerson ->
+                            personViewModel.updatePerson(updatedPerson)
+                            // Keep dialog open but switch to selector
+                            selectedPersonToEdit = null
+                            showPersonSelectorDialog = true
+                        },
+                        onDelete = { personToDelete ->
+                            personViewModel.deletePerson(personToDelete)
+                            selectedPersonToEdit = null
+                        }
+                    )
                 }
 
                 // Add Person Dialog
