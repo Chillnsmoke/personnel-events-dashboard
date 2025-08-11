@@ -962,7 +962,18 @@ fun PersonDetailsMenuContent(
                     }
                 },
                 confirmButton = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Use a Row to control the button layout precisely
+                    Row(
+                        modifier = Modifier.width(400.dp), // Match the dialog width
+                        horizontalArrangement = Arrangement.SpaceEvenly // This will space buttons evenly
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(0.75f).padding(horizontal = 4.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+
                         Button(
                             onClick = {
                                 val newPerson = Person(
@@ -986,6 +997,7 @@ fun PersonDetailsMenuContent(
                                 selectedSection = null
                             },
                             enabled = isFormValid,
+                            modifier = Modifier.weight(1.5f).padding(horizontal = 4.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Blue.copy(alpha = 0.8f)
                             )
@@ -1008,18 +1020,18 @@ fun PersonDetailsMenuContent(
                                 onSave(newPerson)
                             },
                             enabled = isFormValid,
+                            modifier = Modifier.weight(0.75f).padding(horizontal = 4.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Green.copy(alpha = 0.8f)
                             )
                         ) {
-                            Text("Add Person")
+                            Text("Save")
                         }
                     }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
+                    // Empty - all buttons handled in confirmButton
+
                 }
             )
         }
@@ -1150,7 +1162,8 @@ fun PersonDetailsMenuContent(
             onDismiss: () -> Unit,
             onSave: (Person) -> Unit,
             onSaveAndEditAnother: (Person) -> Unit,
-            onDelete: (Person) -> Unit
+            onDelete: (Person) -> Unit,
+            onCancel: () -> Unit = { onSaveAndEditAnother(person) } // Default to reopening selector
         ) {
             var firstName by remember { mutableStateOf(person.firstName) }
             var lastName by remember { mutableStateOf(person.lastName) }
@@ -1187,7 +1200,7 @@ fun PersonDetailsMenuContent(
                     },
                     text = {
                         Text(
-                            "Are you sure you want to delete ${person.rank} ${person.lastName}, ${person.firstName}? This action cannot be undone.",
+                            "Are you sure you want to delete ${person.rank} ${person.firstName} ${person.lastName}? This action cannot be undone.",
                             fontSize = 16.sp
                         )
                     },
@@ -1224,21 +1237,21 @@ fun PersonDetailsMenuContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                        Text("Edit Person", fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Delete button below title
-                        OutlinedButton(
-                            onClick = { showDeleteConfirmation = true },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Red.copy(alpha = 0.1f),
-                                contentColor = Color.Red
-                            ),
-                            border = BorderStroke(2.dp, Color.Red)
-                        ) {
-                            Text("Delete Person", fontWeight = FontWeight.Bold)
+                            Text("Edit Person", fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // Delete button below title
+                            OutlinedButton(
+                                onClick = { showDeleteConfirmation = true },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.Red.copy(alpha = 0.1f),
+                                    contentColor = Color.Red
+                                ),
+                                border = BorderStroke(2.dp, Color.Red)
+                            ) {
+                                Text("Delete Person", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
-                        }
                 },
                 text = {
                     Column(
@@ -1422,7 +1435,18 @@ fun PersonDetailsMenuContent(
                     }
                 },
                 confirmButton = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Use a Row to control the button layout precisely
+                    Row(
+                        modifier = Modifier.width(400.dp), // Match the dialog width
+                        horizontalArrangement = Arrangement.SpaceEvenly // This will space buttons evenly
+                    ) {
+                        OutlinedButton(
+                            onClick = onCancel, // Use the cancel callback to reopen person selector
+                            modifier = Modifier.weight(0.75f).padding(horizontal = 4.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+
                         Button(
                             onClick = {
                                 val updatedPerson = person.copy(
@@ -1437,6 +1461,7 @@ fun PersonDetailsMenuContent(
                                 onSaveAndEditAnother(updatedPerson)
                             },
                             enabled = isFormValid,
+                            modifier = Modifier.weight(1.5f).padding(horizontal = 4.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Blue.copy(alpha = 0.8f)
                             )
@@ -1458,6 +1483,7 @@ fun PersonDetailsMenuContent(
                                 onSave(updatedPerson)
                             },
                             enabled = isFormValid,
+                            modifier = Modifier.weight(0.75f).padding(horizontal = 4.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Green.copy(alpha = 0.8f)
                             )
@@ -1467,13 +1493,10 @@ fun PersonDetailsMenuContent(
                     }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
+                    // Empty - all buttons handled in confirmButton
                 }
             )
         }
-
         val allRanks = remember(people) {
             people.map { it.rank }.distinct().sorted()
         }
