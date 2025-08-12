@@ -20,7 +20,7 @@ val E5 = Color(0xFFC8E6C9)
 val E4 = Color(0xFFDCEDC8)
 val E3 = Color(0xFFF0F4C3)
 
-val Background = Color(0xFF4d4d4d)
+val Background = Color(0xFF1a1a1a)
 val Border = Color(0xFF7d8181)
 val Charcoal = Color(0xFF333333)
 val LightGrey = Color(0xFFCCCCCC)

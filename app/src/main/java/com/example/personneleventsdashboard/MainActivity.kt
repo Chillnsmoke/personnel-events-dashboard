@@ -41,6 +41,7 @@ import com.example.personneleventsdashboard.ui.theme.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.clickable
 import android.app.Application
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +66,17 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import java.time.YearMonth
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import com.example.personneleventsdashboard.model.CalendarDay
+import com.example.personneleventsdashboard.model.CalendarMonth
+import com.example.personneleventsdashboard.model.CalendarUtils
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
@@ -76,6 +88,37 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ADD THIS DEBUG CODE RIGHT HERE - after super.onCreate() but before setContent
+        val displayMetrics = resources.displayMetrics
+        val configuration = resources.configuration
+
+        // Show DPI and screen info in a Toast popup
+        Toast.makeText(
+            this,
+            "DPI: ${displayMetrics.densityDpi} | Size: ${displayMetrics.widthPixels}x${displayMetrics.heightPixels} | Density: ${displayMetrics.density}",
+            Toast.LENGTH_LONG
+        ).show()
+
+        // ADD THIS: Force lower density for large screens
+        if (displayMetrics.densityDpi > 300) {
+            // Scale down the density significantly
+            val targetDensity = 1.0f  // Experiment with values: 1.0f, 1.2f, 1.6f, 2.0f
+            val targetDensityDpi = (160 * targetDensity).toInt()
+
+            displayMetrics.density = targetDensity
+            displayMetrics.scaledDensity = targetDensity
+            displayMetrics.densityDpi = targetDensityDpi
+
+            // Also apply to resources
+            resources.displayMetrics.density = targetDensity
+            resources.displayMetrics.scaledDensity = targetDensity
+            resources.displayMetrics.densityDpi = targetDensityDpi
+
+            // Show what we changed it to
+            Toast.makeText(this, "Adjusted to: DPI: $targetDensityDpi | Density: $targetDensity", Toast.LENGTH_LONG).show()
+        }
+
         setContent {
             PersonnelEventsDashboardTheme {
                 // Initialize ViewModels
@@ -139,7 +182,7 @@ class MainActivity : ComponentActivity() {
                                     .weight(3f) // 75%
                                     .fillMaxWidth()
                             ) {
-                                PlaceholderQuadrant("Event Calendar")
+                                EventCalendarQuadrant()
                             }
                             Box(
                                 Modifier
@@ -449,7 +492,7 @@ fun ShopColumn(
                     )
                     .border(3.dp, (Border), RoundedCornerShape(10.dp))
                     .fillMaxWidth()
-                    .height(56.dp) // You can adjust height as desired
+                    .height(46.dp) // You can adjust height as desired
             ) {
                 Box(
                     Modifier.fillMaxSize(),
@@ -531,7 +574,7 @@ fun ShopColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp, horizontal = 6.dp)
-                .height(44.dp)
+                .height(34.dp)
                 .clickable { onClick() }
         ) {
             Box(
@@ -1444,7 +1487,7 @@ fun PersonDetailsMenuContent(
                             onClick = onCancel, // Use the cancel callback to reopen person selector
                             modifier = Modifier.weight(0.75f).padding(horizontal = 4.dp)
                         ) {
-                            Text("Cancel")
+                            Text("Back")
                         }
 
                         Button(
@@ -1734,13 +1777,7 @@ fun PersonDetailsMenuContent(
                             modifier = Modifier.width(380.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = "Results ${columnIndex + 1}",
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-
-                            columnPeople.forEach { person ->
+                                                        columnPeople.forEach { person ->
                                 ReadOnlyPersonPillWithPopup(person, shopList)
                             }
                         }
@@ -1753,7 +1790,6 @@ fun PersonDetailsMenuContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(80.dp)
-                    .background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1765,7 +1801,7 @@ fun PersonDetailsMenuContent(
 
                 OutlinedButton(
                     onClick = { showAddPersonDialog = true },
-                    modifier = Modifier.width(180.dp).height(48.dp),
+                    modifier = Modifier.width(120.dp).height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Green.copy(alpha = 0.1f),
                         contentColor = Color.Green.copy(alpha = 0.8f)
@@ -1778,7 +1814,7 @@ fun PersonDetailsMenuContent(
                 // Edit Person Button
                 OutlinedButton(
                     onClick = { showPersonSelectorDialog = true },
-                    modifier = Modifier.width(180.dp).height(48.dp),
+                    modifier = Modifier.width(120.dp).height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Blue.copy(alpha = 0.1f),
                         contentColor = Color.Blue.copy(alpha = 0.8f)
@@ -2029,6 +2065,223 @@ fun PersonDetailsMenuContent(
         return shopList.firstOrNull { it.shopId == shopId }?.name ?: "Unknown"
     }
 
+
+
+    @Composable
+    fun EventCalendarQuadrant() {
+        var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
+        val calendarMonth = remember(currentYearMonth) {
+            CalendarUtils.generateCalendarMonth(currentYearMonth)
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            // Header with month navigation
+            CalendarHeader(
+                yearMonth = currentYearMonth,
+                onPreviousMonth = { currentYearMonth = currentYearMonth.minusMonths(1) },
+                onNextMonth = { currentYearMonth = currentYearMonth.plusMonths(1) },
+                onGoToToday = { currentYearMonth = YearMonth.now() } // Add this callback
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Calendar grid
+            CalendarGrid(calendarMonth = calendarMonth)
+        }
+    }
+
+    @Composable
+    fun CalendarHeader(
+        yearMonth: YearMonth,
+        onPreviousMonth: () -> Unit,
+        onNextMonth: () -> Unit,
+        onGoToToday: () -> Unit
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(70.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Previous month arrow
+            IconButton(
+                onClick = onPreviousMonth,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Text(
+                    text = "◀",
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.LightGray
+                )
+            }
+
+            // Center section with absolute positioning for Today button
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                // Month and year display - always centered
+                Text(
+                    text = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                    fontSize = 58.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+
+                // Today button - positioned based on past/future relative to current month
+                if (yearMonth != YearMonth.now()) {
+                    val currentMonth = YearMonth.now()
+                    val isInPast = yearMonth.isBefore(currentMonth)
+                    val buttonOffset = if (isInPast) (-280).dp else 280.dp
+
+                    OutlinedButton(
+                        onClick = onGoToToday,
+                        modifier = Modifier
+                            .height(40.dp)
+                            .offset(x = buttonOffset),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.Gray
+                        ),
+                        border = BorderStroke(1.dp, Color.Gray)
+                    ) {
+                        Text(
+                            text = "Today",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            // Next month arrow
+            IconButton(
+                onClick = onNextMonth,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Text(
+                    text = "▶",
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.LightGray
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun CalendarGrid(calendarMonth: CalendarMonth) {
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent), // Fully transparent to not interfere with colors set for individual days already
+            border = BorderStroke(5.dp, Border)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Day labels header (S-M-T-W-T-F-S)
+                DayLabelsRow()
+
+                // Calendar weeks
+                calendarMonth.weeks.forEach { week ->
+                    CalendarWeekRow(
+                        week = week,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun DayLabelsRow() {
+        val dayLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+        ) {
+            dayLabels.forEach { label ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .border(1.dp, Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 40.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun CalendarWeekRow(
+        week: List<CalendarDay>,
+        modifier: Modifier = Modifier
+    ) {
+        Row(
+            modifier = modifier.fillMaxWidth()
+        ) {
+            week.forEach { day ->
+                CalendarDayCell(
+                    day = day,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun CalendarDayCell(
+        day: CalendarDay,
+        modifier: Modifier = Modifier
+    ) {
+        val backgroundColor = when {
+            day.isToday -> Color.White.copy(alpha = 0.6f)
+            day.isCurrentMonth -> Color.White.copy(alpha = 0.4f)
+            else -> Color.Gray.copy(alpha = 0.2f)
+        }
+
+        val textColor = when {
+            day.isToday -> Charcoal.copy(alpha = 0.5f)
+            day.isCurrentMonth -> Color.Black
+            else -> Color.Gray
+        }
+
+        Box(
+            modifier = modifier
+                .fillMaxHeight()
+                .border(1.dp, Color.LightGray)
+                .background(backgroundColor)
+                .clickable {
+                    // TODO: Handle day click for adding events
+                }
+                .padding(4.dp),
+            contentAlignment = Alignment.TopStart
+        ) {
+            Text(
+                text = day.date.dayOfMonth.toString(),
+                fontSize = 40.sp,
+                fontWeight = if (day.isToday) FontWeight.Bold else FontWeight.Normal,
+                color = textColor
+            )
+
+            // TODO: Add event indicators here later
+        }
+    }
 
 }
 
