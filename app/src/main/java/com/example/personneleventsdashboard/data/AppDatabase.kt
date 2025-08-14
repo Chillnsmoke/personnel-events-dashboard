@@ -7,10 +7,11 @@ import com.example.personneleventsdashboard.model.Person
 import com.example.personneleventsdashboard.model.Shop
 import com.example.personneleventsdashboard.model.Event
 import com.example.personneleventsdashboard.model.EventType
+import com.example.personneleventsdashboard.model.TailNumber  // ADD THIS IMPORT
 
 @Database(
-    entities = [Person::class, Shop::class, Event::class, EventType::class],
-    version = 7,
+    entities = [Person::class, Shop::class, Event::class, EventType::class, TailNumber::class],
+    version = 9, // INCREMENT from 6 to 7
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -19,4 +20,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun shopDao(): ShopDao
     abstract fun eventDao(): EventDao
     abstract fun eventTypeDao(): EventTypeDao
+    abstract fun tailNumberDao(): TailNumberDao
 }

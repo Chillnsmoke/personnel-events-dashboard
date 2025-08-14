@@ -87,6 +87,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import com.example.personneleventsdashboard.data.EventRepository
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
@@ -101,6 +104,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.times
+import com.example.personneleventsdashboard.data.TailNumberRepository
+import com.example.personneleventsdashboard.model.TailNumber
+import com.example.personneleventsdashboard.viewmodel.TailNumberViewModel
+import com.example.personneleventsdashboard.viewmodel.TailNumberViewModelFactory
 import java.time.temporal.ChronoUnit
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
@@ -229,8 +236,9 @@ class MainActivity : ComponentActivity() {
             val db = AppDatabaseProvider.getDatabase(this@MainActivity)
             val shopDao = db.shopDao()
             val personDao = db.personDao()
-            val eventDao = db.eventDao()           // Add this line
-            val eventTypeDao = db.eventTypeDao()   // Add this line
+            val eventDao = db.eventDao()
+            val eventTypeDao = db.eventTypeDao()
+            val tailNumberDao = db.tailNumberDao()
 
             if (shopDao.getAllShops().first().isEmpty() && personDao.getAllPersons().first()
                     .isEmpty()
@@ -374,7 +382,22 @@ class MainActivity : ComponentActivity() {
                 persons.forEach { personDao.insertPerson(it) }
             }
 
-            // ADD THIS NEW SECTION - Seed event types if database is empty
+            //Seed tail numbers if database is empty
+            if (tailNumberDao.getAllTailNumbers().first().isEmpty()) {
+                val defaultTailNumbers = listOf("2003", "2005", "2006", "2010", "2014")
+
+                defaultTailNumbers.forEach { number ->
+                    tailNumberDao.insertTailNumber(
+                        TailNumber(
+                            number = number,
+                            isActive = true,
+                            notes = "Default aircraft"
+                        )
+                    )
+                }
+            }
+
+            //Seed event types if database is empty
             if (eventTypeDao.getAllEventTypes().first().isEmpty()) {
                 val presetEventTypes = listOf(
                     EventType(
@@ -2188,6 +2211,14 @@ fun PersonDetailsMenuContent(
         val eventTypes = eventViewModel.eventTypes.collectAsState(initial = emptyList()).value
         val allEvents = eventViewModel.events.collectAsState(initial = emptyList()).value
 
+        val tailNumberDao = AppDatabaseProvider.getDatabase(context).tailNumberDao()
+        val tailNumberRepository = TailNumberRepository(tailNumberDao)
+        val tailNumberViewModel: TailNumberViewModel = viewModel(
+            factory = TailNumberViewModelFactory(tailNumberRepository)
+        )
+
+        val tailNumbers = tailNumberViewModel.tailNumbers.collectAsState(initial = emptyList()).value
+
         // Filter events for the current calendar view (include a buffer for multi-day events)
         val visibleEvents = remember(allEvents, currentYearMonth) {
             val startOfCalendar = currentYearMonth.atDay(1).minusDays(7) // Buffer for previous month
@@ -2242,6 +2273,7 @@ fun PersonDetailsMenuContent(
             AddEventDialog(
                 selectedDate = date,
                 eventTypes = eventTypes,
+                tailNumbers = tailNumbers,
                 onDismiss = { selectedDateForEvent = null },
                 onEventAdded = { event ->
                     eventViewModel.insertEvent(event)
@@ -2540,23 +2572,20 @@ fun PersonDetailsMenuContent(
         isLastDayOfEvent: Boolean,
         onClick: () -> Unit
     ) {
-        // Calculate positioning
-        val cellWidth = 1f / weekSize
-        val startOffset = cellWidth * startDayIndex
-        val spanWidth = cellWidth * (endDayIndex - startDayIndex + 1)
+        // CRITICAL: Match the exact spacing used in CalendarDayCell
+        val eventHeight = 52.dp
+        val totalEventSpace = 53.dp // This includes the 2dp spacing that's in the Spacer
+        val dateNumberHeight = 52.dp // Match the actual space used by date number
+        val topPadding = dateNumberHeight + 4.dp // Match CalendarDayCell's Spacer after date
 
-        // Calculate vertical position based on slot (0-4, where 4 is bottom)
-        val eventHeight = 50.dp
-        val eventSpacing = 2.dp
-        val dateNumberHeight = 40.dp // Space for date number
-        val topPadding = dateNumberHeight + 8.dp // Start after date number
-        val slotOffset = topPadding + (slot * (eventHeight + eventSpacing))
+        // Calculate vertical offset using the SAME logic as single-day events
+        val verticalOffset = topPadding + (slot * totalEventSpace)
 
         // Get color from event type or use default
         val eventColor = if (eventType != null) {
             getEventColor(eventType.color)
         } else {
-            Color.Gray
+            Color.Red
         }
 
         // Status-based styling
@@ -2567,24 +2596,33 @@ fun PersonDetailsMenuContent(
             else -> Pair(Color.Black, null)
         }
 
-        Box(
+        // Use Row to position the event span correctly
+        Row(
             modifier = Modifier
-                .fillMaxWidth(startOffset + spanWidth)
-                .height(eventHeight)
-                .offset(
-                    x = (startOffset * 100).dp * 10, // Approximate positioning
-                    y = slotOffset
-                )
+                .fillMaxWidth()
+                .height(eventHeight) // Use the exact same height as single-day events
+                .offset(y = verticalOffset)
                 .padding(
-                    start = if (startDayIndex == 0) 4.dp else 0.dp,
-                    end = if (endDayIndex == weekSize - 1) 4.dp else 0.dp,
-                    top = 0.dp,
-                    bottom = 0.dp
+                    top = 0.5.dp,
+                    bottom = 1.dp
                 )
         ) {
+            // Empty space for days before the event starts
+            repeat(startDayIndex) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+
+            // The actual event span
             Card(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight((endDayIndex - startDayIndex + 1).toFloat())
+                    .height(eventHeight) // Explicit height to match single-day events
+                    .padding(
+                        start = if (startDayIndex == 0) 4.dp else 4.dp,
+                        end = if (endDayIndex == weekSize - 1) 4.dp else 4.dp,
+                        top = 0.dp, // Remove top padding to match single-day events
+                        bottom = 0.dp // Remove bottom padding to match single-day events
+                    )
                     .clickable { onClick() },
                 shape = RoundedCornerShape(
                     topStart = if (isFirstDayOfEvent) 4.dp else 0.dp,
@@ -2593,67 +2631,73 @@ fun PersonDetailsMenuContent(
                     bottomEnd = if (isLastDayOfEvent) 4.dp else 0.dp
                 ),
                 colors = CardDefaults.cardColors(
-                    containerColor = eventColor.copy(alpha = 0.3f)
+                    containerColor = eventColor.copy(alpha = 0.4f)
                 ),
                 border = BorderStroke(1.dp, eventColor),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center // Changed from CenterStart to Center
                 ) {
-                    // Title centered across the entire span
                     Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.Center, // Changed from Start to Center
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         // Complete status indicator
                         if (event.status == "Complete") {
                             Text(
                                 text = "✓",
-                                fontSize = 24.sp,
+                                fontSize = 32.sp,
                                 color = Color.Green,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(end = 4.dp)
+                                modifier = Modifier.padding(end = 2.dp)
                             )
                         }
 
                         // Event title
                         Text(
                             text = event.title,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
                             color = titleColor,
                             textDecoration = titleDecoration,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center // Add text alignment
                         )
 
                         // In Progress status indicator
                         if (event.status == "In Progress") {
                             Text(
                                 text = "...",
-                                fontSize = 24.sp,
+                                fontSize = 32.sp,
                                 color = Orange,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(start = 4.dp)
+                                modifier = Modifier.padding(start = 2.dp)
                             )
                         }
 
                         // Aircraft tail number
                         event.aircraftTailNumber?.let { tailNumber ->
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = " - $tailNumber",
-                                fontSize = 20.sp,
+                                text = tailNumber,
+                                fontSize = 28.sp,
                                 color = Color.DarkGray,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
+            }
+
+            // Empty space for days after the event ends
+            repeat(weekSize - 1 - endDayIndex) {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
@@ -2916,6 +2960,7 @@ fun PersonDetailsMenuContent(
     fun AddEventDialog(
         selectedDate: LocalDate,
         eventTypes: List<EventType>,
+        tailNumbers: List<TailNumber>,
         onDismiss: () -> Unit,
         onEventAdded: (Event) -> Unit
     ) {
@@ -2927,6 +2972,7 @@ fun PersonDetailsMenuContent(
                 PresetEventDialog(
                     selectedDate = selectedDate,
                     eventTypes = eventTypes.filter { it.isPreset },
+                    tailNumbers = tailNumbers,
                     onDismiss = { showPresetEvents = false; onDismiss() },
                     onBack = { showPresetEvents = false },
                     onEventAdded = onEventAdded
@@ -3014,12 +3060,15 @@ fun PersonDetailsMenuContent(
     fun PresetEventDialog(
         selectedDate: LocalDate,
         eventTypes: List<EventType>,
+        tailNumbers: List<TailNumber>,
         onDismiss: () -> Unit,
         onBack: () -> Unit,
         onEventAdded: (Event) -> Unit
     ) {
         var selectedEventType by remember { mutableStateOf<EventType?>(null) }
-        var aircraftTailNumber by remember { mutableStateOf("") }
+        var selectedTailNumber by remember { mutableStateOf<String?>(null) }
+        var customTailNumber by remember { mutableStateOf("") }
+        var useCustomTailNumber by remember { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -3032,68 +3081,158 @@ fun PersonDetailsMenuContent(
             },
             text = {
                 Column(
-                    modifier = Modifier.width(400.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.width(500.dp), // Increased width for 2-column layout
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text("Select event type:", fontWeight = FontWeight.Bold)
 
-                    // Event type selection grid
+                    // Event type selection grid - 2 columns
                     LazyColumn(
                         modifier = Modifier.height(200.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(eventTypes) { eventType ->
-                            val isSelected = selectedEventType == eventType
-                            val eventColor = getEventColor(eventType.color)
-                            val eventIcon = getEventIcon(eventType.iconName)
+                        // Group event types into pairs for 2-column layout
+                        val eventTypePairs = eventTypes.chunked(2)
 
-                            OutlinedButton(
-                                onClick = { selectedEventType = eventType },
+                        items(eventTypePairs) { eventTypePair ->
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) eventColor.copy(alpha = 0.2f) else Color.White,
-                                    contentColor = if (isSelected) eventColor else Color.Black
-                                ),
-                                border = BorderStroke(
-                                    2.dp,
-                                    if (isSelected) eventColor else Color.Gray
-                                )
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = eventIcon,
-                                            fontSize = 16.sp,
-                                            modifier = Modifier.padding(end = 8.dp)
+                                eventTypePair.forEach { eventType ->
+                                    val isSelected = selectedEventType == eventType
+                                    val eventColor = getEventColor(eventType.color)
+                                    val eventIcon = getEventIcon(eventType.iconName)
+
+                                    OutlinedButton(
+                                        onClick = { selectedEventType = eventType },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = if (isSelected) eventColor.copy(alpha = 0.2f) else Color.White,
+                                            contentColor = if (isSelected) eventColor else Color.Black
+                                        ),
+                                        border = BorderStroke(
+                                            2.dp,
+                                            if (isSelected) eventColor else Color.Gray
                                         )
-                                        Text(eventType.name, fontWeight = FontWeight.Medium)
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = eventIcon,
+                                                fontSize = 20.sp,
+                                                modifier = Modifier.padding(bottom = 4.dp)
+                                            )
+                                            Text(
+                                                text = eventType.name,
+                                                fontWeight = FontWeight.Medium,
+                                                fontSize = 12.sp,
+                                                textAlign = TextAlign.Center
+                                            )
+                                            if (isSelected) {
+                                                Text(
+                                                    "✓",
+                                                    color = eventColor,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 16.sp
+                                                )
+                                            }
+                                        }
                                     }
-                                    if (isSelected) Text("✓", color = eventColor, fontWeight = FontWeight.Bold)
+                                }
+
+                                // If odd number of items, add spacer for the last row
+                                if (eventTypePair.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
                     }
 
-                    // Aircraft tail number (optional)
-                    OutlinedTextField(
-                        value = aircraftTailNumber,
-                        onValueChange = { aircraftTailNumber = it },
-                        label = { Text("Aircraft Tail Number (Optional)") },
-                        placeholder = { Text("e.g., 2006") },
+                    Divider()
+
+                    // Aircraft tail number selection
+                    Text("Select aircraft:", fontWeight = FontWeight.Bold)
+
+                    // Quick tail number selection - 3 columns for better fit
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.height(120.dp),
+                        contentPadding = PaddingValues(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(tailNumbers) { tailNumber ->
+                            val isSelected = selectedTailNumber == tailNumber.number && !useCustomTailNumber
+
+                            OutlinedButton(
+                                onClick = {
+                                    selectedTailNumber = tailNumber.number
+                                    useCustomTailNumber = false
+                                    customTailNumber = ""
+                                },
+                                modifier = Modifier.height(40.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) Color.Blue.copy(alpha = 0.1f) else Color.White,
+                                    contentColor = if (isSelected) Color.Blue else Color.Black
+                                ),
+                                border = BorderStroke(
+                                    2.dp,
+                                    if (isSelected) Color.Blue else Color.Gray
+                                )
+                            ) {
+                                Text(
+                                    text = tailNumber.number,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Custom tail number option
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = useCustomTailNumber,
+                            onCheckedChange = {
+                                useCustomTailNumber = it
+                                if (it) {
+                                    selectedTailNumber = null
+                                } else {
+                                    customTailNumber = ""
+                                }
+                            }
+                        )
+                        Text(
+                            text = "Other:",
+                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                        OutlinedTextField(
+                            value = customTailNumber,
+                            onValueChange = {
+                                customTailNumber = it
+                                if (it.isNotBlank()) {
+                                    useCustomTailNumber = true
+                                    selectedTailNumber = null
+                                }
+                            },
+                            placeholder = { Text("Enter tail number") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = useCustomTailNumber || customTailNumber.isNotBlank()
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Row(
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.width(500.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     OutlinedButton(
@@ -3106,13 +3245,19 @@ fun PersonDetailsMenuContent(
                     Button(
                         onClick = {
                             selectedEventType?.let { eventType ->
+                                val finalTailNumber = when {
+                                    useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
+                                    selectedTailNumber != null -> selectedTailNumber
+                                    else -> null
+                                }
+
                                 val newEvent = Event(
                                     title = eventType.name,
                                     description = eventType.description,
                                     startDate = selectedDate,
                                     endDate = selectedDate,
                                     eventTypeId = eventType.eventTypeId,
-                                    aircraftTailNumber = aircraftTailNumber.takeIf { it.isNotBlank() },
+                                    aircraftTailNumber = finalTailNumber,
                                     status = "Scheduled"
                                 )
                                 onEventAdded(newEvent)
