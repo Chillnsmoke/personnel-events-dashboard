@@ -231,7 +231,7 @@ class MainActivity : ComponentActivity() {
 
         }
 
-// Data seeding code here...
+        // Data seeding code here...
         lifecycleScope.launch {
             val db = AppDatabaseProvider.getDatabase(this@MainActivity)
             val shopDao = db.shopDao()
@@ -3081,18 +3081,18 @@ fun PersonDetailsMenuContent(
             },
             text = {
                 Column(
-                    modifier = Modifier.width(500.dp), // Increased width for 2-column layout
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.width(500.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text("Select event type:", fontWeight = FontWeight.Bold)
 
-                    // Event type selection grid - 2 columns
+                    // Event type selection grid - 3 columns
                     LazyColumn(
-                        modifier = Modifier.height(200.dp),
+                        modifier = Modifier.height(220.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Group event types into pairs for 2-column layout
-                        val eventTypePairs = eventTypes.chunked(2)
+                        // Group event types into pairs for 3-column layout
+                        val eventTypePairs = eventTypes.chunked(3)
 
                         items(eventTypePairs) { eventTypePair ->
                             Row(
@@ -3131,14 +3131,6 @@ fun PersonDetailsMenuContent(
                                                 fontSize = 12.sp,
                                                 textAlign = TextAlign.Center
                                             )
-                                            if (isSelected) {
-                                                Text(
-                                                    "✓",
-                                                    color = eventColor,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 16.sp
-                                                )
-                                            }
                                         }
                                     }
                                 }
@@ -3159,7 +3151,7 @@ fun PersonDetailsMenuContent(
                     // Quick tail number selection - 3 columns for better fit
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
-                        modifier = Modifier.height(120.dp),
+                        modifier = Modifier.height(100.dp),
                         contentPadding = PaddingValues(4.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
