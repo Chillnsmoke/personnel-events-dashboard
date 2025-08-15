@@ -109,6 +109,9 @@ import com.example.personneleventsdashboard.model.TailNumber
 import com.example.personneleventsdashboard.viewmodel.TailNumberViewModel
 import com.example.personneleventsdashboard.viewmodel.TailNumberViewModelFactory
 import java.time.temporal.ChronoUnit
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
@@ -2297,6 +2300,11 @@ fun PersonDetailsMenuContent(
                     eventViewModel.deleteEvent(event)
                     selectedEvent = null
                     Toast.makeText(context, "Event deleted: ${event.title}", Toast.LENGTH_SHORT).show()
+                },
+                onStatusUpdate = { updatedEvent -> // Add this parameter
+                    eventViewModel.updateEvent(updatedEvent)
+                    selectedEvent = updatedEvent // Keep dialog open with updated event
+                    Toast.makeText(context, "Status updated to: ${updatedEvent.status}", Toast.LENGTH_SHORT).show()
                 }
             )
         }
@@ -2306,6 +2314,7 @@ fun PersonDetailsMenuContent(
             EditEventDialog(
                 event = event,
                 eventTypes = eventTypes,
+                tailNumbers = tailNumbers, // Add this line
                 onDismiss = { eventToEdit = null },
                 onEventUpdated = { updatedEvent ->
                     eventViewModel.updateEvent(updatedEvent)
@@ -2847,14 +2856,14 @@ fun PersonDetailsMenuContent(
         val eventColor = if (eventType != null) {
             getEventColor(eventType.color)
         } else {
-            Color.Gray
+            Color.Black
         }
 
         // Get icon from event type
         val eventIcon = if (eventType != null) {
             getEventIcon(eventType.iconName)
         } else {
-            "📅"
+            "\uD83D\uDCCC"
         }
 
         // Status-based styling
@@ -2980,6 +2989,7 @@ fun PersonDetailsMenuContent(
             showCustomEvent -> {
                 CustomEventDialog(
                     selectedDate = selectedDate,
+                    tailNumbers = tailNumbers, // Add this line
                     onDismiss = { showCustomEvent = false; onDismiss() },
                     onBack = { showCustomEvent = false },
                     onEventAdded = onEventAdded
@@ -3014,10 +3024,10 @@ fun PersonDetailsMenuContent(
                                     .fillMaxWidth()
                                     .height(60.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.Blue.copy(alpha = 0.1f),
-                                    contentColor = Color.Blue
+                                    containerColor = Color.DarkGray.copy(alpha = 0.2f),
+                                    contentColor = Charcoal
                                 ),
-                                border = BorderStroke(2.dp, Color.Blue)
+                                border = BorderStroke(2.dp, Charcoal.copy(alpha = 0.4f))
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("Quick Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -3032,10 +3042,10 @@ fun PersonDetailsMenuContent(
                                     .fillMaxWidth()
                                     .height(60.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.Green.copy(alpha = 0.1f),
-                                    contentColor = Color.Green
+                                    containerColor = Color.Gray.copy(alpha = 0.3f),
+                                    contentColor = Forest
                                 ),
-                                border = BorderStroke(2.dp, Color.Green)
+                                border = BorderStroke(2.dp, Forest.copy(alpha = 0.4f))
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("Custom Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -3148,6 +3158,8 @@ fun PersonDetailsMenuContent(
                     Text("Select aircraft:", fontWeight = FontWeight.Bold)
 
                     // Quick tail number selection - 3 columns for better fit
+                    Text("Select aircraft:", fontWeight = FontWeight.Bold)
+
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         modifier = Modifier.height(100.dp),
@@ -3160,9 +3172,17 @@ fun PersonDetailsMenuContent(
 
                             OutlinedButton(
                                 onClick = {
-                                    selectedTailNumber = tailNumber.number
-                                    useCustomTailNumber = false
-                                    customTailNumber = ""
+                                    if (isSelected) {
+                                        // If already selected, clear it
+                                        selectedTailNumber = null
+                                        useCustomTailNumber = false
+                                        customTailNumber = ""
+                                    } else {
+                                        // If not selected, select it
+                                        selectedTailNumber = tailNumber.number
+                                        useCustomTailNumber = false
+                                        customTailNumber = ""
+                                    }
                                 },
                                 modifier = Modifier.height(40.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -3271,18 +3291,53 @@ fun PersonDetailsMenuContent(
     @Composable
     fun CustomEventDialog(
         selectedDate: LocalDate,
+        tailNumbers: List<TailNumber>, // Add this parameter
         onDismiss: () -> Unit,
         onBack: () -> Unit,
         onEventAdded: (Event) -> Unit
     ) {
         var title by remember { mutableStateOf("") }
         var description by remember { mutableStateOf("") }
-        var aircraftTailNumber by remember { mutableStateOf("") }
+        var selectedTailNumber by remember { mutableStateOf<String?>(null) }
+        var customTailNumber by remember { mutableStateOf("") }
+        var useCustomTailNumber by remember { mutableStateOf(false) }
         var isMultiDay by remember { mutableStateOf(false) }
         var startDate by remember { mutableStateOf(selectedDate) }
         var endDate by remember { mutableStateOf(selectedDate) }
 
+        // Date picker states
+        var showStartDatePicker by remember { mutableStateOf(false) }
+        var showEndDatePicker by remember { mutableStateOf(false) }
+
         val isFormValid = title.isNotBlank() && startDate <= endDate
+
+        // Start Date Picker Dialog
+        if (showStartDatePicker) {
+            DatePickerDialog(
+                currentDate = startDate,
+                onDateSelected = { newDate ->
+                    startDate = newDate
+                    if (newDate > endDate) {
+                        endDate = newDate
+                    }
+                    showStartDatePicker = false
+                },
+                onDismiss = { showStartDatePicker = false }
+            )
+        }
+
+        // End Date Picker Dialog
+        if (showEndDatePicker) {
+            DatePickerDialog(
+                currentDate = endDate,
+                minDate = startDate,
+                onDateSelected = { newDate ->
+                    endDate = newDate
+                    showEndDatePicker = false
+                },
+                onDismiss = { showEndDatePicker = false }
+            )
+        }
 
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -3295,7 +3350,7 @@ fun PersonDetailsMenuContent(
             },
             text = {
                 Column(
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.width(500.dp), // Increased width to match PresetEventDialog
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedTextField(
@@ -3314,14 +3369,92 @@ fun PersonDetailsMenuContent(
                         maxLines = 3
                     )
 
-                    OutlinedTextField(
-                        value = aircraftTailNumber,
-                        onValueChange = { aircraftTailNumber = it },
-                        label = { Text("Aircraft Tail Number (Optional)") },
-                        placeholder = { Text("e.g., 2006") },
+                    Divider()
+
+                    // Aircraft tail number selection (same as PresetEventDialog)
+                    Text("Select aircraft:", fontWeight = FontWeight.Bold)
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.height(100.dp),
+                        contentPadding = PaddingValues(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(tailNumbers) { tailNumber ->
+                            val isSelected = selectedTailNumber == tailNumber.number && !useCustomTailNumber
+
+                            OutlinedButton(
+                                onClick = {
+                                    if (isSelected) {
+                                        // If already selected, clear it
+                                        selectedTailNumber = null
+                                        useCustomTailNumber = false
+                                        customTailNumber = ""
+                                    } else {
+                                        // If not selected, select it
+                                        selectedTailNumber = tailNumber.number
+                                        useCustomTailNumber = false
+                                        customTailNumber = ""
+                                    }
+                                },
+                                modifier = Modifier.height(40.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) Color.Blue.copy(alpha = 0.1f) else Color.White,
+                                    contentColor = if (isSelected) Color.Blue else Color.Black
+                                ),
+                                border = BorderStroke(
+                                    2.dp,
+                                    if (isSelected) Color.Blue else Color.Gray
+                                )
+                            ) {
+                                Text(
+                                    text = tailNumber.number,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Custom tail number option
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = useCustomTailNumber,
+                            onCheckedChange = {
+                                useCustomTailNumber = it
+                                if (it) {
+                                    selectedTailNumber = null
+                                } else {
+                                    customTailNumber = ""
+                                }
+                            }
+                        )
+                        Text(
+                            text = "Other:",
+                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                        OutlinedTextField(
+                            value = customTailNumber,
+                            onValueChange = {
+                                customTailNumber = it
+                                if (it.isNotBlank()) {
+                                    useCustomTailNumber = true
+                                    selectedTailNumber = null
+                                }
+                            },
+                            placeholder = { Text("Enter tail number") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = useCustomTailNumber || customTailNumber.isNotBlank()
+                        )
+                    }
+
+                    Divider()
 
                     // Multi-day event checkbox
                     Row(
@@ -3333,7 +3466,6 @@ fun PersonDetailsMenuContent(
                             onCheckedChange = {
                                 isMultiDay = it
                                 if (!it) {
-                                    // Reset to single day when unchecked
                                     startDate = selectedDate
                                     endDate = selectedDate
                                 }
@@ -3357,7 +3489,7 @@ fun PersonDetailsMenuContent(
                         ) {
                             Column(
                                 modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
                                     "Date Range",
@@ -3365,91 +3497,57 @@ fun PersonDetailsMenuContent(
                                     color = Color.Blue
                                 )
 
-                                // Start Date
-                                OutlinedTextField(
-                                    value = startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                                    onValueChange = { /* Read-only for now, will add date picker later */ },
-                                    label = { Text("Start Date") },
+                                // Start Date Picker Button
+                                OutlinedButton(
+                                    onClick = { showStartDatePicker = true },
                                     modifier = Modifier.fillMaxWidth(),
-                                    readOnly = true,
-                                    trailingIcon = {
-                                        Text("📅", fontSize = 16.sp)
-                                    }
-                                )
-
-                                // End Date
-                                OutlinedTextField(
-                                    value = endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                                    onValueChange = { /* Read-only for now, will add date picker later */ },
-                                    label = { Text("End Date") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    readOnly = true,
-                                    trailingIcon = {
-                                        Text("📅", fontSize = 16.sp)
-                                    }
-                                )
-
-                                // Quick date adjustment buttons
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color.Black
+                                    ),
+                                    border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
                                 ) {
-                                    // Start date buttons
-                                    OutlinedButton(
-                                        onClick = { startDate = startDate.minusDays(1) },
-                                        modifier = Modifier.width(32.dp).height(32.dp),
-                                        contentPadding = PaddingValues(0.dp)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("◀", fontSize = 12.sp)
+                                        Column {
+                                            Text("Start Date", fontSize = 12.sp, color = Color.Gray)
+                                            Text(
+                                                startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                        Text("📅", fontSize = 20.sp)
                                     }
+                                }
 
-                                    Text(
-                                        "Start",
-                                        modifier = Modifier.align(Alignment.CenterVertically).padding(horizontal = 4.dp),
-                                        fontSize = 12.sp
-                                    )
-
-                                    OutlinedButton(
-                                        onClick = {
-                                            if (startDate < endDate) {
-                                                startDate = startDate.plusDays(1)
-                                            }
-                                        },
-                                        modifier = Modifier.width(32.dp).height(32.dp),
-                                        contentPadding = PaddingValues(0.dp),
-                                        enabled = startDate < endDate
+                                // End Date Picker Button
+                                OutlinedButton(
+                                    onClick = { showEndDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color.Black
+                                    ),
+                                    border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("▶", fontSize = 12.sp)
-                                    }
-
-                                    Spacer(modifier = Modifier.weight(1f))
-
-                                    // End date buttons
-                                    OutlinedButton(
-                                        onClick = {
-                                            if (endDate > startDate) {
-                                                endDate = endDate.minusDays(1)
-                                            }
-                                        },
-                                        modifier = Modifier.width(32.dp).height(32.dp),
-                                        contentPadding = PaddingValues(0.dp),
-                                        enabled = endDate > startDate
-                                    ) {
-                                        Text("◀", fontSize = 12.sp)
-                                    }
-
-                                    Text(
-                                        "End",
-                                        modifier = Modifier.align(Alignment.CenterVertically).padding(horizontal = 4.dp),
-                                        fontSize = 12.sp
-                                    )
-
-                                    OutlinedButton(
-                                        onClick = { endDate = endDate.plusDays(1) },
-                                        modifier = Modifier.width(32.dp).height(32.dp),
-                                        contentPadding = PaddingValues(0.dp)
-                                    ) {
-                                        Text("▶", fontSize = 12.sp)
+                                        Column {
+                                            Text("End Date", fontSize = 12.sp, color = Color.Gray)
+                                            Text(
+                                                endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                        Text("📅", fontSize = 20.sp)
                                     }
                                 }
 
@@ -3457,9 +3555,11 @@ fun PersonDetailsMenuContent(
                                 val duration = ChronoUnit.DAYS.between(startDate, endDate) + 1
                                 Text(
                                     "Duration: $duration day${if (duration != 1L) "s" else ""}",
-                                    fontSize = 12.sp,
+                                    fontSize = 14.sp,
                                     color = Color.Gray,
-                                    fontStyle = FontStyle.Italic
+                                    fontStyle = FontStyle.Italic,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }
@@ -3476,7 +3576,7 @@ fun PersonDetailsMenuContent(
             },
             confirmButton = {
                 Row(
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.width(500.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     OutlinedButton(
@@ -3490,13 +3590,18 @@ fun PersonDetailsMenuContent(
                         onClick = {
                             val finalStartDate = if (isMultiDay) startDate else selectedDate
                             val finalEndDate = if (isMultiDay) endDate else selectedDate
+                            val finalTailNumber = when {
+                                useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
+                                selectedTailNumber != null -> selectedTailNumber
+                                else -> null
+                            }
 
                             val newEvent = Event(
                                 title = title.trim(),
                                 description = description.takeIf { it.isNotBlank() },
                                 startDate = finalStartDate,
                                 endDate = finalEndDate,
-                                aircraftTailNumber = aircraftTailNumber.takeIf { it.isNotBlank() },
+                                aircraftTailNumber = finalTailNumber,
                                 status = "Scheduled"
                             )
                             onEventAdded(newEvent)
@@ -3515,12 +3620,62 @@ fun PersonDetailsMenuContent(
         )
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun DatePickerDialog(
+        currentDate: LocalDate,
+        minDate: LocalDate? = null,
+        maxDate: LocalDate? = null,
+        onDateSelected: (LocalDate) -> Unit,
+        onDismiss: () -> Unit
+    ) {
+        // Convert LocalDate to milliseconds for Material3 DatePicker
+        val currentDateMillis = currentDate.toEpochDay() * 24 * 60 * 60 * 1000
+        val minDateMillis = minDate?.toEpochDay()?.times(24 * 60 * 60 * 1000)
+        val maxDateMillis = maxDate?.toEpochDay()?.times(24 * 60 * 60 * 1000)
+
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = currentDateMillis,
+            yearRange = (2020..2040) // Adjust as needed
+        )
+
+        DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                Button(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val selectedDate = LocalDate.ofEpochDay(millis / (24 * 60 * 60 * 1000))
+                            onDateSelected(selectedDate)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Blue
+                    )
+                ) {
+                    Text("OK", color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+    }
+
     @Composable
     fun EventDetailsDialog(
         event: Event,
         onDismiss: () -> Unit,
         onEdit: () -> Unit,
-        onDelete: () -> Unit
+        onDelete: () -> Unit,
+        onStatusUpdate: (Event) -> Unit // Add this parameter for quick status updates
     ) {
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -3534,7 +3689,7 @@ fun PersonDetailsMenuContent(
             text = {
                 Column(
                     modifier = Modifier.width(400.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Date info
                     if (event.startDate == event.endDate) {
@@ -3569,16 +3724,118 @@ fun PersonDetailsMenuContent(
                         )
                     }
 
-                    // Status
+                    // Current Status Display
                     Text(
                         "Status: ${event.status}",
                         fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
                         color = when (event.status) {
                             "Complete" -> Color.Green
                             "In Progress" -> Orange
                             "Cancelled" -> Color.Red
                             else -> Color.Gray
                         }
+                    )
+
+                    Divider()
+
+                    // Quick Status Update Section
+                    Text(
+                        "Quick Status Update:",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+
+                    // Quick Status Buttons Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // In Progress Button
+                        val isInProgress = event.status == "In Progress"
+                        OutlinedButton(
+                            onClick = {
+                                val newStatus = if (isInProgress) "Scheduled" else "In Progress"
+                                val updatedEvent = event.copy(status = newStatus)
+                                onStatusUpdate(updatedEvent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isInProgress) Orange.copy(alpha = 0.2f) else Color.White,
+                                contentColor = if (isInProgress) Orange else Color.Black
+                            ),
+                            border = BorderStroke(
+                                2.dp,
+                                if (isInProgress) Orange else Color.Gray
+                            )
+                        ) {
+                            Text(
+                                "In Progress",
+                                fontSize = 12.sp,
+                                fontWeight = if (isInProgress) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+
+                        // Complete Button
+                        val isComplete = event.status == "Complete"
+                        OutlinedButton(
+                            onClick = {
+                                val newStatus = if (isComplete) "Scheduled" else "Complete"
+                                val updatedEvent = event.copy(status = newStatus)
+                                onStatusUpdate(updatedEvent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isComplete) Color.Green.copy(alpha = 0.2f) else Color.White,
+                                contentColor = if (isComplete) Color.Green else Color.Black
+                            ),
+                            border = BorderStroke(
+                                2.dp,
+                                if (isComplete) Color.Green else Color.Gray
+                            )
+                        ) {
+                            Text(
+                                "Complete",
+                                fontSize = 12.sp,
+                                fontWeight = if (isComplete) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+
+                        // Cancelled Button
+                        val isCancelled = event.status == "Cancelled"
+                        OutlinedButton(
+                            onClick = {
+                                val newStatus = if (isCancelled) "Scheduled" else "Cancelled"
+                                val updatedEvent = event.copy(status = newStatus)
+                                onStatusUpdate(updatedEvent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isCancelled) Color.Red.copy(alpha = 0.2f) else Color.White,
+                                contentColor = if (isCancelled) Color.Red else Color.Black
+                            ),
+                            border = BorderStroke(
+                                2.dp,
+                                if (isCancelled) Color.Red else Color.Gray
+                            )
+                        ) {
+                            Text(
+                                "Cancelled",
+                                fontSize = 12.sp,
+                                fontWeight = if (isCancelled) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+
+                    // Helper text
+                    Text(
+                        "Tap a status to set it, or tap again to return to Scheduled",
+                        fontSize = 10.sp,
+                        color = Color.Gray,
+                        fontStyle = FontStyle.Italic,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
@@ -3623,6 +3880,7 @@ fun PersonDetailsMenuContent(
     fun EditEventDialog(
         event: Event,
         eventTypes: List<EventType>,
+        tailNumbers: List<TailNumber>, // Add this parameter
         onDismiss: () -> Unit,
         onEventUpdated: (Event) -> Unit,
         onEventDeleted: (Event) -> Unit
@@ -3630,11 +3888,32 @@ fun PersonDetailsMenuContent(
         // Pre-populate with existing event data
         var title by remember { mutableStateOf(event.title) }
         var description by remember { mutableStateOf(event.description ?: "") }
-        var aircraftTailNumber by remember { mutableStateOf(event.aircraftTailNumber ?: "") }
+        var selectedTailNumber by remember {
+            mutableStateOf(
+                if (tailNumbers.any { it.number == event.aircraftTailNumber }) event.aircraftTailNumber else null
+            )
+        }
+        var customTailNumber by remember {
+            mutableStateOf(
+                if (tailNumbers.none { it.number == event.aircraftTailNumber }) event.aircraftTailNumber ?: "" else ""
+            )
+        }
+        var useCustomTailNumber by remember {
+            mutableStateOf(tailNumbers.none { it.number == event.aircraftTailNumber } && !event.aircraftTailNumber.isNullOrBlank())
+        }
         var selectedStatus by remember { mutableStateOf(event.status) }
         var selectedEventType by remember {
             mutableStateOf(eventTypes.find { it.eventTypeId == event.eventTypeId })
         }
+
+        // Multi-day support
+        var isMultiDay by remember { mutableStateOf(event.startDate != event.endDate) }
+        var startDate by remember { mutableStateOf(event.startDate) }
+        var endDate by remember { mutableStateOf(event.endDate) }
+
+        // Date picker states
+        var showStartDatePicker by remember { mutableStateOf(false) }
+        var showEndDatePicker by remember { mutableStateOf(false) }
 
         // Available status options
         val statusOptions = listOf("Scheduled", "In Progress", "Complete", "Cancelled")
@@ -3642,7 +3921,34 @@ fun PersonDetailsMenuContent(
         var showEventTypeDropdown by remember { mutableStateOf(false) }
         var showDeleteConfirmation by remember { mutableStateOf(false) }
 
-        val isFormValid = title.isNotBlank()
+        val isFormValid = title.isNotBlank() && startDate <= endDate
+
+        // Date picker dialogs
+        if (showStartDatePicker) {
+            DatePickerDialog(
+                currentDate = startDate,
+                onDateSelected = { newDate ->
+                    startDate = newDate
+                    if (newDate > endDate) {
+                        endDate = newDate
+                    }
+                    showStartDatePicker = false
+                },
+                onDismiss = { showStartDatePicker = false }
+            )
+        }
+
+        if (showEndDatePicker) {
+            DatePickerDialog(
+                currentDate = endDate,
+                minDate = startDate,
+                onDateSelected = { newDate ->
+                    endDate = newDate
+                    showEndDatePicker = false
+                },
+                onDismiss = { showEndDatePicker = false }
+            )
+        }
 
         // Delete confirmation dialog
         if (showDeleteConfirmation) {
@@ -3687,7 +3993,7 @@ fun PersonDetailsMenuContent(
             onDismissRequest = onDismiss,
             title = {
                 Row(
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.width(500.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -3711,7 +4017,7 @@ fun PersonDetailsMenuContent(
             },
             text = {
                 Column(
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.width(500.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Event Title
@@ -3761,7 +4067,7 @@ fun PersonDetailsMenuContent(
                                     DropdownMenuItem(
                                         onClick = {
                                             selectedEventType = eventType
-                                            title = eventType.name // Update title when event type changes
+                                            title = eventType.name
                                             showEventTypeDropdown = false
                                         },
                                         text = {
@@ -3789,15 +4095,92 @@ fun PersonDetailsMenuContent(
                         maxLines = 3
                     )
 
-                    // Aircraft Tail Number
-                    OutlinedTextField(
-                        value = aircraftTailNumber,
-                        onValueChange = { aircraftTailNumber = it },
-                        label = { Text("Aircraft Tail Number") },
-                        placeholder = { Text("e.g., 2006") },
+                    Divider()
+
+                    // Aircraft tail number selection with toggle clear
+                    Text("Select aircraft:", fontWeight = FontWeight.Bold)
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.height(100.dp),
+                        contentPadding = PaddingValues(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(tailNumbers) { tailNumber ->
+                            val isSelected = selectedTailNumber == tailNumber.number && !useCustomTailNumber
+
+                            OutlinedButton(
+                                onClick = {
+                                    if (isSelected) {
+                                        // If already selected, clear it
+                                        selectedTailNumber = null
+                                        useCustomTailNumber = false
+                                        customTailNumber = ""
+                                    } else {
+                                        // If not selected, select it
+                                        selectedTailNumber = tailNumber.number
+                                        useCustomTailNumber = false
+                                        customTailNumber = ""
+                                    }
+                                },
+                                modifier = Modifier.height(40.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) Color.Blue.copy(alpha = 0.1f) else Color.White,
+                                    contentColor = if (isSelected) Color.Blue else Color.Black
+                                ),
+                                border = BorderStroke(
+                                    2.dp,
+                                    if (isSelected) Color.Blue else Color.Gray
+                                )
+                            ) {
+                                Text(
+                                    text = tailNumber.number,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Custom tail number option
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = useCustomTailNumber,
+                            onCheckedChange = {
+                                useCustomTailNumber = it
+                                if (it) {
+                                    selectedTailNumber = null
+                                } else {
+                                    customTailNumber = ""
+                                }
+                            }
+                        )
+                        Text(
+                            text = "Other:",
+                            modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                        OutlinedTextField(
+                            value = customTailNumber,
+                            onValueChange = {
+                                customTailNumber = it
+                                if (it.isNotBlank()) {
+                                    useCustomTailNumber = true
+                                    selectedTailNumber = null
+                                }
+                            },
+                            placeholder = { Text("Enter tail number") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = useCustomTailNumber || customTailNumber.isNotBlank()
+                        )
+                    }
+
+                    Divider()
 
                     // Status
                     Text("Status:", fontWeight = FontWeight.Bold)
@@ -3849,18 +4232,147 @@ fun PersonDetailsMenuContent(
                         }
                     }
 
-                    // Event Date Info (read-only for now)
-                    Text(
-                        "Date: ${event.startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Divider()
+
+                    // Multi-day event checkbox
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isMultiDay,
+                            onCheckedChange = {
+                                isMultiDay = it
+                                if (!it) {
+                                    endDate = startDate
+                                }
+                            }
+                        )
+                        Text(
+                            text = "Multi-day event",
+                            modifier = Modifier.padding(start = 8.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    // Date editing
+                    if (isMultiDay) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.Blue.copy(alpha = 0.05f)
+                            ),
+                            border = BorderStroke(1.dp, Color.Blue.copy(alpha = 0.3f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    "Date Range",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Blue
+                                )
+
+                                // Start Date Picker Button
+                                OutlinedButton(
+                                    onClick = { showStartDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color.Black
+                                    ),
+                                    border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text("Start Date", fontSize = 12.sp, color = Color.Gray)
+                                            Text(
+                                                startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                        Text("📅", fontSize = 20.sp)
+                                    }
+                                }
+
+                                // End Date Picker Button
+                                OutlinedButton(
+                                    onClick = { showEndDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color.Black
+                                    ),
+                                    border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text("End Date", fontSize = 12.sp, color = Color.Gray)
+                                            Text(
+                                                endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                        Text("📅", fontSize = 20.sp)
+                                    }
+                                }
+
+                                // Duration display
+                                val duration = ChronoUnit.DAYS.between(startDate, endDate) + 1
+                                Text(
+                                    "Duration: $duration day${if (duration != 1L) "s" else ""}",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray,
+                                    fontStyle = FontStyle.Italic,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    } else {
+                        // Single day event - show date picker button
+                        OutlinedButton(
+                            onClick = { showStartDatePicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            ),
+                            border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Event Date", fontSize = 12.sp, color = Color.Gray)
+                                    Text(
+                                        startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                Text("📅", fontSize = 20.sp)
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
                 Row(
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.width(500.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     OutlinedButton(
@@ -3872,12 +4384,20 @@ fun PersonDetailsMenuContent(
 
                     Button(
                         onClick = {
+                            val finalTailNumber = when {
+                                useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
+                                selectedTailNumber != null -> selectedTailNumber
+                                else -> null
+                            }
+
                             val updatedEvent = event.copy(
                                 title = title.trim(),
                                 description = description.takeIf { it.isNotBlank() },
-                                aircraftTailNumber = aircraftTailNumber.takeIf { it.isNotBlank() },
+                                aircraftTailNumber = finalTailNumber,
                                 status = selectedStatus,
-                                eventTypeId = selectedEventType?.eventTypeId
+                                eventTypeId = selectedEventType?.eventTypeId,
+                                startDate = startDate,
+                                endDate = if (isMultiDay) endDate else startDate
                             )
                             onEventUpdated(updatedEvent)
                         },
@@ -3906,7 +4426,7 @@ fun PersonDetailsMenuContent(
             "maintenance" -> "🔧"
             "training" -> "📚"
             "holiday" -> "🎉"
-            else -> "📅"
+            else -> "\uD83C\uDFAF"
         }
     }
 
@@ -3914,7 +4434,7 @@ fun PersonDetailsMenuContent(
         return try {
             Color(android.graphics.Color.parseColor(colorHex ?: "#9E9E9E"))
         } catch (e: Exception) {
-            Color.Gray
+            Color.Black
         }
     }
 
