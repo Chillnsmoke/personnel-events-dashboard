@@ -2775,7 +2775,6 @@ fun PersonDetailsMenuContent(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Top row: Date number and View All button (if needed)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2795,15 +2794,15 @@ fun PersonDetailsMenuContent(
                                 .height(32.dp)
                                 .width(64.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color.Blue,
-                                containerColor = Color.White.copy(alpha = 0.9f)
+                                contentColor = Charcoal,
+                                containerColor = Color.White.copy(alpha = 0.1f)
                             ),
-                            border = BorderStroke(1.dp, Color.Blue),
+                            border = BorderStroke(1.dp, Charcoal.copy(alpha = .4f)),
                             contentPadding = PaddingValues(2.dp)
                         ) {
                             Text(
-                                text = "All",
-                                fontSize = 10.sp,
+                                text = "View All",
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
