@@ -112,6 +112,7 @@ import java.time.temporal.ChronoUnit
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import java.time.format.TextStyle
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
@@ -138,7 +139,7 @@ class MainActivity : ComponentActivity() {
         // ADD THIS: Force lower density for large screens
         if (displayMetrics.densityDpi > 300) {
             // Scale down the density significantly
-            val targetDensity = 1.0f  // Experiment with values: 1.0f, 1.2f, 1.6f, 2.0f
+            val targetDensity = 0.75f  // Experiment with values: 1.0f, 1.2f, 1.6f, 2.0f
             val targetDensityDpi = (160 * targetDensity).toInt()
 
             displayMetrics.density = targetDensity
@@ -686,12 +687,12 @@ fun ShopColumn(
             MaterialTheme.typography.titleLarge.copy(
                 color = (Charcoal),      // deep blue as an example
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 26.sp                // larger, bolder for E7
+                fontSize = 28.sp                // larger, bolder for E7
             )
         } else {
             MaterialTheme.typography.titleLarge.copy(
                 color = (Charcoal),            // or your normal color
-                fontSize = 22.sp
+                fontSize = 26.sp
             )
         }
         Card(
@@ -700,7 +701,7 @@ fun ShopColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp, horizontal = 6.dp)
-                .height(34.dp)
+                .height(40.dp)
                 .clickable { onClick() }
         ) {
             Box(
@@ -735,7 +736,7 @@ fun PersonDetailsMenuContent(
         Text(
             "${person.rank} ${person.firstName} ${person.lastName}",
             style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 24.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF333333) // Charcoal
             )
@@ -989,7 +990,7 @@ fun PersonDetailsMenuContent(
                                 },
                             singleLine = true,
                             supportingText = {
-                                Text("Enter 10 digits - will format when complete", fontSize = 10.sp)
+                                Text("Enter 10 digits - will format when complete", fontSize = 12.sp)
                             }
                         )
 
@@ -1292,17 +1293,17 @@ fun PersonDetailsMenuContent(
                                             Text(
                                                 "${person.rank} ${person.lastName}, ${person.firstName}",
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp
+                                                fontSize = 18.sp
                                             )
                                             Text(
                                                 "Shop: $shopName | Section: ${person.dutySection}",
-                                                fontSize = 12.sp,
+                                                fontSize = 14.sp,
                                                 color = Color.Gray
                                             )
                                         }
                                         Text(
                                             "Click to Edit →",
-                                            fontSize = 12.sp,
+                                            fontSize = 18.sp,
                                             color = Color.Blue,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -1370,7 +1371,7 @@ fun PersonDetailsMenuContent(
                     text = {
                         Text(
                             "Are you sure you want to delete ${person.rank} ${person.firstName} ${person.lastName}? This action cannot be undone.",
-                            fontSize = 16.sp
+                            fontSize = 18.sp
                         )
                     },
                     confirmButton = {
@@ -1462,7 +1463,7 @@ fun PersonDetailsMenuContent(
                                 },
                             singleLine = true,
                             supportingText = {
-                                Text("Enter 10 digits - will format when complete", fontSize = 10.sp)
+                                Text("Enter 10 digits - will format when complete", fontSize = 12.sp)
                             }
                         )
 
@@ -2058,7 +2059,7 @@ fun PersonDetailsMenuContent(
                     ) {
                         Text(
                             text = currentFilter?.first ?: "Select Type",
-                            fontSize = 12.sp
+                            fontSize = 18.sp
                         )
                     }
 
@@ -2076,7 +2077,7 @@ fun PersonDetailsMenuContent(
                                         onFilterCleared()
                                     }
                                 },
-                                text = { Text(type, fontSize = 12.sp) }
+                                text = { Text(type, fontSize = 18.sp) }
                             )
                         }
                     }
@@ -2100,7 +2101,7 @@ fun PersonDetailsMenuContent(
                     ) {
                         Text(
                             text = currentFilter?.second ?: "Select Value",
-                            fontSize = 12.sp
+                            fontSize = 18.sp
                         )
                     }
 
@@ -2123,7 +2124,7 @@ fun PersonDetailsMenuContent(
                                     onFilterSelected(Pair(selectedType!!, option))
                                     showValueMenu = false
                                 },
-                                text = { Text(option, fontSize = 12.sp) }
+                                text = { Text(option, fontSize = 18.sp) }
                             )
                         }
                     }
@@ -3031,7 +3032,7 @@ fun PersonDetailsMenuContent(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("Quick Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                    Text("Aircraft Wash, Inspection, etc.", fontSize = 14.sp)
+                                    Text("Aircraft Wash, Inspection, etc.", fontSize = 16.sp)
                                 }
                             }
 
@@ -3049,7 +3050,7 @@ fun PersonDetailsMenuContent(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("Custom Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                    Text("Create your own event", fontSize = 14.sp)
+                                    Text("Create your own event", fontSize = 16.sp)
                                 }
                             }
                         }
@@ -3093,9 +3094,14 @@ fun PersonDetailsMenuContent(
                     modifier = Modifier.width(500.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Select event type:", fontWeight = FontWeight.Bold)
+                    Text(
+                        fontSize = 16.sp,
+                        text = "Select an event type:",
+                        fontWeight = FontWeight.Bold
+                    )
 
-                    // Event type selection grid - 3 columns
+
+                                // Event type selection grid - 3 columns
                     LazyColumn(
                         modifier = Modifier.height(220.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -3137,7 +3143,7 @@ fun PersonDetailsMenuContent(
                                             Text(
                                                 text = eventType.name,
                                                 fontWeight = FontWeight.Medium,
-                                                fontSize = 12.sp,
+                                                fontSize = 18.sp,
                                                 textAlign = TextAlign.Center
                                             )
                                         }
@@ -3154,11 +3160,12 @@ fun PersonDetailsMenuContent(
 
                     Divider()
 
-                    // Aircraft tail number selection
-                    Text("Select aircraft:", fontWeight = FontWeight.Bold)
-
                     // Quick tail number selection - 3 columns for better fit
-                    Text("Select aircraft:", fontWeight = FontWeight.Bold)
+                    Text(
+                        fontSize = 16.sp,
+                        text = "Select aircraft:",
+                        fontWeight = FontWeight.Bold
+                    )
 
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
@@ -3197,7 +3204,7 @@ fun PersonDetailsMenuContent(
                                 Text(
                                     text = tailNumber.number,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 14.sp
+                                    fontSize = 18.sp
                                 )
                             }
                         }
@@ -3221,6 +3228,7 @@ fun PersonDetailsMenuContent(
                         )
                         Text(
                             text = "Other:",
+                            fontSize = 16.sp,
                             modifier = Modifier.padding(start = 8.dp, end = 8.dp),
                             fontWeight = FontWeight.Medium
                         )
@@ -3233,7 +3241,12 @@ fun PersonDetailsMenuContent(
                                     selectedTailNumber = null
                                 }
                             },
-                            placeholder = { Text("Enter tail number") },
+                            placeholder = { Text(
+                                fontSize = 16.sp,
+                                text = "Enter tail number",
+                                fontWeight = FontWeight.Bold
+                            )
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = useCustomTailNumber || customTailNumber.isNotBlank()
@@ -3250,7 +3263,10 @@ fun PersonDetailsMenuContent(
                         onClick = onBack,
                         modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
                     ) {
-                        Text("Back")
+                        Text(
+                            fontSize = 18.sp,
+                            text = "Back"
+                        )
                     }
 
                     Button(
@@ -3277,10 +3293,13 @@ fun PersonDetailsMenuContent(
                         enabled = selectedEventType != null,
                         modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Green.copy(alpha = 0.8f)
+                            containerColor = Color.Green.copy(alpha = 0.4f)
                         )
                     ) {
-                        Text("Add Event")
+                        Text(
+                            fontSize = 18.sp,
+                            text = "Add Event"
+                        )
                     }
                 }
             },
@@ -3358,6 +3377,7 @@ fun PersonDetailsMenuContent(
                         onValueChange = { title = it },
                         label = { Text("Event Title") },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp),
                         singleLine = true
                     )
 
@@ -3366,13 +3386,18 @@ fun PersonDetailsMenuContent(
                         onValueChange = { description = it },
                         label = { Text("Description (Optional)") },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp),
                         maxLines = 3
                     )
 
                     Divider()
 
                     // Aircraft tail number selection (same as PresetEventDialog)
-                    Text("Select aircraft:", fontWeight = FontWeight.Bold)
+                    Text(
+                        fontSize = 18.sp,
+                        text = "Select aircraft:",
+                        fontWeight = FontWeight.Bold
+                    )
 
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
@@ -3411,7 +3436,7 @@ fun PersonDetailsMenuContent(
                                 Text(
                                     text = tailNumber.number,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 14.sp
+                                    fontSize = 18.sp
                                 )
                             }
                         }
@@ -3435,6 +3460,7 @@ fun PersonDetailsMenuContent(
                         )
                         Text(
                             text = "Other:",
+                            fontSize = 16.sp,
                             modifier = Modifier.padding(start = 8.dp, end = 8.dp),
                             fontWeight = FontWeight.Medium
                         )
@@ -3447,7 +3473,12 @@ fun PersonDetailsMenuContent(
                                     selectedTailNumber = null
                                 }
                             },
-                            placeholder = { Text("Enter tail number") },
+                            placeholder = {
+                                Text(
+                                    text = "Enter tail number",
+                                    fontSize = 16.sp
+                                )
+                                          },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             enabled = useCustomTailNumber || customTailNumber.isNotBlank()
@@ -3473,6 +3504,7 @@ fun PersonDetailsMenuContent(
                         )
                         Text(
                             text = "Multi-day event",
+                            fontSize = 16.sp,
                             modifier = Modifier.padding(start = 8.dp),
                             fontWeight = FontWeight.Medium
                         )
@@ -3492,7 +3524,8 @@ fun PersonDetailsMenuContent(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    "Date Range",
+                                    text = "Date Range",
+                                    fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Blue
                                 )
@@ -3513,7 +3546,7 @@ fun PersonDetailsMenuContent(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column {
-                                            Text("Start Date", fontSize = 12.sp, color = Color.Gray)
+                                            Text("Start Date", fontSize = 14.sp, color = Color.Gray)
                                             Text(
                                                 startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
                                                 fontSize = 16.sp,
@@ -3540,7 +3573,7 @@ fun PersonDetailsMenuContent(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column {
-                                            Text("End Date", fontSize = 12.sp, color = Color.Gray)
+                                            Text("End Date", fontSize = 14.sp, color = Color.Gray)
                                             Text(
                                                 endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
                                                 fontSize = 16.sp,
