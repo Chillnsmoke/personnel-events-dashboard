@@ -1780,7 +1780,9 @@ fun PersonDetailsMenuContent(
             Text(
                 text = "Filter/Search & Manage Personnel",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp),
+                color = LightGrey,
+                fontSize = 18.sp
             )
 
             // Main content area with filters and results
@@ -1928,27 +1930,27 @@ fun PersonDetailsMenuContent(
 
                 OutlinedButton(
                     onClick = { showAddPersonDialog = true },
-                    modifier = Modifier.width(120.dp).height(48.dp),
+                    modifier = Modifier.width(140.dp).height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Green.copy(alpha = 0.1f),
-                        contentColor = Color.Green.copy(alpha = 0.8f)
+                        containerColor = Color.LightGray.copy(alpha = 0.5f),
+                        contentColor = Forest.copy(alpha = 0.8f)
                     ),
-                    border = BorderStroke(2.dp, Color.Green.copy(alpha = 0.8f))
+                    border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f))
                 ) {
-                    Text("Add Person", fontWeight = FontWeight.Bold)
+                    Text("Add Person", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
 
                 // Edit Person Button
                 OutlinedButton(
                     onClick = { showPersonSelectorDialog = true },
-                    modifier = Modifier.width(120.dp).height(48.dp),
+                    modifier = Modifier.width(140.dp).height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Blue.copy(alpha = 0.1f),
-                        contentColor = Color.Blue.copy(alpha = 0.8f)
+                        containerColor = Color.LightGray.copy(alpha = 0.5f),
+                        contentColor = DarkBlue.copy(alpha = 0.8f)
                     ),
-                    border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.8f))
+                    border = BorderStroke(2.dp, DarkBlue.copy(alpha = 0.8f))
                 ) {
-                    Text("Edit Person", fontWeight = FontWeight.Bold)
+                    Text("Edit Person", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
 
                 // Person Selector Dialog
@@ -2058,7 +2060,7 @@ fun PersonDetailsMenuContent(
                         border = BorderStroke(1.dp, Color.Gray)
                     ) {
                         Text(
-                            text = currentFilter?.first ?: "Select Type",
+                            text = currentFilter?.first ?: "Add Filter",
                             fontSize = 18.sp
                         )
                     }
