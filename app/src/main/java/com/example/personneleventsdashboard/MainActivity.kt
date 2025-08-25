@@ -81,6 +81,7 @@ import com.example.personneleventsdashboard.model.EventType
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.material3.ripple  // Use material3 ripple, not material.ripple
 import androidx.compose.runtime.remember
 import androidx.compose.ui.input.pointer.pointerInput
@@ -125,7 +126,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ADD THIS DEBUG CODE RIGHT HERE - after super.onCreate() but before setContent
         val displayMetrics = resources.displayMetrics
         val configuration = resources.configuration
 
@@ -136,7 +136,6 @@ class MainActivity : ComponentActivity() {
             Toast.LENGTH_LONG
         ).show()
 
-        // ADD THIS: Force lower density for large screens
         if (displayMetrics.densityDpi > 300) {
             // Scale down the density significantly
             val targetDensity = 0.75f  // Experiment with values: 1.0f, 1.2f, 1.6f, 2.0f
@@ -225,7 +224,10 @@ class MainActivity : ComponentActivity() {
                                     .weight(1f) // 25%
                                     .fillMaxWidth()
                             ) {
-                                PlaceholderQuadrant("Status Tracker")
+                                StatusTrackerQuadrant(
+                                    people = personViewModel.people.collectAsState(initial = emptyList()).value,
+                                    shopList = shopList
+                                )
                             }
                         }
                     }
@@ -2304,7 +2306,7 @@ fun PersonDetailsMenuContent(
                     selectedEvent = null
                     Toast.makeText(context, "Event deleted: ${event.title}", Toast.LENGTH_SHORT).show()
                 },
-                onStatusUpdate = { updatedEvent -> // Add this parameter
+                onStatusUpdate = { updatedEvent ->
                     eventViewModel.updateEvent(updatedEvent)
                     selectedEvent = updatedEvent // Keep dialog open with updated event
                     Toast.makeText(context, "Status updated to: ${updatedEvent.status}", Toast.LENGTH_SHORT).show()
@@ -2317,7 +2319,7 @@ fun PersonDetailsMenuContent(
             EditEventDialog(
                 event = event,
                 eventTypes = eventTypes,
-                tailNumbers = tailNumbers, // Add this line
+                tailNumbers = tailNumbers,
                 onDismiss = { eventToEdit = null },
                 onEventUpdated = { updatedEvent ->
                     eventViewModel.updateEvent(updatedEvent)
@@ -2679,7 +2681,7 @@ fun PersonDetailsMenuContent(
                             textDecoration = titleDecoration,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center // Add text alignment
+                            textAlign = TextAlign.Center
                         )
 
                         // In Progress status indicator
@@ -2992,7 +2994,7 @@ fun PersonDetailsMenuContent(
             showCustomEvent -> {
                 CustomEventDialog(
                     selectedDate = selectedDate,
-                    tailNumbers = tailNumbers, // Add this line
+                    tailNumbers = tailNumbers,
                     onDismiss = { showCustomEvent = false; onDismiss() },
                     onBack = { showCustomEvent = false },
                     onEventAdded = onEventAdded
@@ -3312,7 +3314,7 @@ fun PersonDetailsMenuContent(
     @Composable
     fun CustomEventDialog(
         selectedDate: LocalDate,
-        tailNumbers: List<TailNumber>, // Add this parameter
+        tailNumbers: List<TailNumber>,
         onDismiss: () -> Unit,
         onBack: () -> Unit,
         onEventAdded: (Event) -> Unit
@@ -3710,7 +3712,7 @@ fun PersonDetailsMenuContent(
         onDismiss: () -> Unit,
         onEdit: () -> Unit,
         onDelete: () -> Unit,
-        onStatusUpdate: (Event) -> Unit // Add this parameter for quick status updates
+        onStatusUpdate: (Event) -> Unit
     ) {
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -3915,7 +3917,7 @@ fun PersonDetailsMenuContent(
     fun EditEventDialog(
         event: Event,
         eventTypes: List<EventType>,
-        tailNumbers: List<TailNumber>, // Add this parameter
+        tailNumbers: List<TailNumber>,
         onDismiss: () -> Unit,
         onEventUpdated: (Event) -> Unit,
         onEventDeleted: (Event) -> Unit
@@ -4631,6 +4633,312 @@ fun PersonDetailsMenuContent(
             },
             dismissButton = {}
         )
+    }
+
+    @Composable
+    fun StatusTrackerQuadrant(
+        people: List<Person>,
+        shopList: List<Shop>
+    ) {
+        var showReport by remember { mutableStateOf(false) }
+        var reportGeneratedAt by remember { mutableStateOf<String?>(null) }
+        var reportPeople by remember { mutableStateOf<List<Person>>(emptyList()) }
+
+        // Generate report data and timestamp when button is clicked
+        fun generateReport() {
+            // Capture current people data
+            reportPeople = people.toList()
+
+            // Generate timestamp
+            val currentTime = System.currentTimeMillis()
+            val formatter = java.text.SimpleDateFormat("MMMM dd, yyyy 'at' h:mm a", java.util.Locale.US)
+            reportGeneratedAt = "Report generated on ${formatter.format(java.util.Date(currentTime))}"
+
+            showReport = true
+        }
+
+        // Filter people by status from captured report data
+        val lvPeople = remember(reportPeople) {
+            reportPeople.filter { it.status.contains("LV") }
+        }
+        val tdyPeople = remember(reportPeople) {
+            reportPeople.filter { it.status.contains("TDY") }
+        }
+        val sldPeople = remember(reportPeople) {
+            reportPeople.filter { it.status.contains("SLD") }
+        }
+        val deployedPeople = remember(reportPeople) {
+            reportPeople.filter { it.status.contains("Deployed") }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Personnel Status Report",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = LightGrey
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        if (showReport) {
+                            showReport = false
+                            reportGeneratedAt = null
+                            reportPeople = emptyList()
+                        } else {
+                            generateReport()
+                        }
+                    },
+                    modifier = Modifier.height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.LightGray.copy(alpha = 0.5f),
+                        contentColor = Forest.copy(alpha = 0.8f)
+                    ),
+                    border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f))
+                ) {
+                    Text(
+                        text = if (showReport) "Hide Report" else "Generate Absence Report",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (showReport) {
+                // Report timestamp header
+                reportGeneratedAt?.let { timestamp ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                        border = BorderStroke(1.dp, Border)
+                    ) {
+                        Text(
+                            text = timestamp,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = LightGrey,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
+                // Status columns
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(150.dp)
+                ) {
+                    // LV Column
+                    StatusColumn(
+                        title = "Leave",
+                        people = lvPeople,
+                        backgroundColor = Color(0xFFCCCCFF),
+                        borderColor = Color(0xFFAFAFFF),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // TDY Column
+                    StatusColumn(
+                        title = "TDY",
+                        people = tdyPeople,
+                        backgroundColor = Color(0xFFCCCCFF),
+                        borderColor = Color(0xFFAFAFFF),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // SLD Column
+                    StatusColumn(
+                        title = "SLD",
+                        people = sldPeople,
+                        backgroundColor = Color(0xFFFFE699),
+                        borderColor = Color(0xFFFFD44B),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Deployed Column
+                    StatusColumn(
+                        title = "Deployed",
+                        people = deployedPeople,
+                        backgroundColor = Color(0xFF6699FF),
+                        borderColor = Color(0xFF377AFF),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                // Summary when report is hidden - show current live data
+                val currentLvPeople = people.filter { it.status.contains("LV") }
+                val currentTdyPeople = people.filter { it.status.contains("TDY") }
+                val currentSldPeople = people.filter { it.status.contains("SLD") }
+                val currentDeployedPeople = people.filter { it.status.contains("Deployed") }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                    border = BorderStroke(2.dp, Border)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Personnel Status Summary",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LightGrey
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatusSummaryItem("LV", currentLvPeople.size, Color(0xFFAFAFFF))
+                            StatusSummaryItem("TDY", currentTdyPeople.size, Color(0xFFAFAFFF))
+                            StatusSummaryItem("SLD", currentSldPeople.size, Color(0xFFFFD44B))
+                            StatusSummaryItem("Deployed", currentDeployedPeople.size, Color(0xFF377AFF))
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Click 'Generate Absence Report' to capture current status data with timestamp",
+                            fontSize = 16.sp,
+                            color = Color.Gray,
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun StatusColumn(
+        title: String,
+        people: List<Person>,
+        backgroundColor: Color,
+        borderColor: Color,
+        modifier: Modifier = Modifier
+    ) {
+        Card(
+            modifier = modifier
+                .fillMaxHeight()
+                .padding(4.dp),
+            colors = CardDefaults.cardColors(containerColor = backgroundColor.copy(alpha = 0.8f)),
+            border = BorderStroke(2.dp, borderColor),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Column Header
+                Text(
+                    text = "$title (${people.size})",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Charcoal,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+
+                Divider(
+                    color = borderColor,
+                    thickness = 2.dp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // People list
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    items(people) { person ->
+                        StatusPersonPill(
+                            person = person
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun StatusPersonPill(
+        person: Person
+    ) {
+
+        Card(
+            shape = RoundedCornerShape(15.dp),
+            colors = CardDefaults.cardColors(containerColor = colorForRank(person.rank)),
+            modifier = Modifier
+                .width(380.dp)
+                .padding(vertical = 2.dp)
+                .height(40.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "${person.rank} ${person.lastName}, ${person.firstName}",
+                        fontSize = 26.sp,
+                        color = Charcoal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun StatusSummaryItem(
+        label: String,
+        count: Int,
+        color: Color
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = count.toString(),
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                text = label,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = LightGrey
+            )
+        }
     }
 
 }
