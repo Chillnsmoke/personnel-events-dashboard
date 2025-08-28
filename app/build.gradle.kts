@@ -16,11 +16,20 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+    }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../personnel-events-keystore.jks")
+            storePassword = "Kelsinicole87!"
+            keyAlias = "personnel-events-key"
+            keyPassword = "Kelsinicole87!"
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -28,6 +37,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -65,4 +75,8 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.viewmodel)
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
