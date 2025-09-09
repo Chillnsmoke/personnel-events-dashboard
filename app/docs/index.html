@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personnel & Events Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #ffffff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .logo {
+        width: 120px;
+        height: 120px;
+        background: #ffffff;
+        border-radius: 20px;
+        margin: 0 auto 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: #1e3c72;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        font-size: 1.3rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+      }
+
+      .description {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        max-width: 800px;
+        margin: 0 auto 3rem;
+        opacity: 0.95;
+      }
+
+      .download-section {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 2.5rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 3rem;
+      }
+
+      .download-btn {
+        display: inline-block;
+        background: #4caf50;
+        color: white;
+        padding: 1rem 2.5rem;
+        text-decoration: none;
+        border-radius: 50px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
+        margin: 1rem;
+      }
+
+      .download-btn:hover {
+        background: #45a049;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+      }
+
+      .download-btn.secondary {
+        background: #2196f3;
+        box-shadow: 0 5px 20px rgba(33, 150, 243, 0.3);
+      }
+
+      .download-btn.secondary:hover {
+        background: #1976d2;
+        box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+
+      .feature-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+
+      .feature-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .feature-description {
+        opacity: 0.9;
+        line-height: 1.5;
+      }
+
+      .requirements {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .requirements h3 {
+        margin-bottom: 1rem;
+        color: #ffd700;
+      }
+
+      .requirements ul {
+        list-style-position: inside;
+        opacity: 0.9;
+      }
+
+      .requirements li {
+        margin-bottom: 0.5rem;
+      }
+
+      .footer {
+        text-align: center;
+        padding: 2rem;
+        opacity: 0.7;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .version-info {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-family: monospace;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .subtitle {
+          font-size: 1.1rem;
+        }
+
+        .features {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">📊</div>
+        <h1>Personnel & Events Dashboard</h1>
+        <p class="subtitle">
+          Coast Guard Aviation Maintenance Operations Management
+        </p>
+        <p class="description">
+          A comprehensive touchscreen-optimized Android application designed for
+          large format displays. Manage personnel assignments, track
+          qualifications, schedule events, and monitor unit readiness all from a
+          unified 4-quadrant dashboard interface.
+        </p>
+      </div>
+
+      <div class="download-section">
+        <h2>Download Application</h2>
+        <div class="version-info">
+          <strong>Version:</strong> 1.0.0<br />
+          <strong>Build:</strong> Release<br />
+          <strong>Size:</strong> ~25 MB<br />
+          <strong>Last Updated:</strong> <span id="currentDate"></span>
+        </div>
+
+        <a href="#" class="download-btn" id="downloadApk"> 📱 Download APK </a>
+        <a
+          href="https://gitlab.com/your-username/personnel-events-dashboard"
+          class="download-btn secondary"
+          target="_blank"
+        >
+          📁 View Source Code
+        </a>
+      </div>
+
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <div class="feature-title">Shop Roster Management</div>
+          <div class="feature-description">
+            View and manage personnel organized by shop assignments with
+            dropdown functionality and real-time status updates.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <div class="feature-title">Personnel Search & Filtering</div>
+          <div class="feature-description">
+            Advanced filtering by qualifications, rank, duty section, and
+            status. Quickly find the right personnel for any assignment.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📅</div>
+          <div class="feature-title">Event Calendar</div>
+          <div class="feature-description">
+            Schedule and track maintenance events, deployments, training, and
+            operations with aircraft assignment integration.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <div class="feature-title">Status Tracking</div>
+          <div class="feature-description">
+            Monitor personnel availability with absence reporting for leave,
+            TDY, sliding, and deployment status.
+          </div>
+        </div>
+      </div>
+
+      <div class="requirements">
+        <h3>System Requirements</h3>
+        <ul>
+          <li>Android 13 (API Level 33) or higher</li>
+          <li>Minimum 4GB RAM</li>
+          <li>2GB available storage space</li>
+          <li>Touch-enabled display (optimized for large format displays)</li>
+          <li>Samsung SmartBoard 75" 4K display (recommended)</li>
+        </ul>
+      </div>
+
+      <div class="requirements">
+        <h3>Installation Instructions</h3>
+        <ul>
+          <li>Enable "Install from unknown sources" in Android settings</li>
+          <li>Download the APK file</li>
+          <li>Tap the downloaded file to install</li>
+          <li>Launch the application and allow it to seed initial data</li>
+          <li>Customize personnel and shop data for your unit</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        &copy; 2025 Personnel & Events Dashboard | Developed by David Owens |
+        WGU Capstone Project D424
+      </p>
+      <p>Built with Android/Kotlin | Room Database | Jetpack Compose</p>
+    </div>
+
+    <script>
+      // Set current date
+      document.getElementById("currentDate").textContent =
+        new Date().toLocaleDateString();
+
+      // Placeholder for download functionality
+      document
+        .getElementById("downloadApk")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          alert(
+            "APK download will be available once deployed to Firebase App Distribution"
+          );
+        });
+    </script>
+  </body>
+</html>
