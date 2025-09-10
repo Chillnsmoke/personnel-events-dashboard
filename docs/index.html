@@ -211,7 +211,6 @@
           unified 4-quadrant dashboard interface.
         </p>
       </div>
-
       <div class="download-section">
         <h2>Download Application</h2>
         <div class="version-info">
@@ -221,13 +220,12 @@
           <strong>Last Updated:</strong> <span id="currentDate"></span>
         </div>
 
-        <a href="#" class="download-btn" id="downloadApk"> 📱 Download APK </a>
         <a
-          href="https://gitlab.com/your-username/personnel-events-dashboard"
-          class="download-btn secondary"
-          target="_blank"
+          href="https://gitlab.com/wgu-gitlab-environment/student-repos/dowe246/d424-software-engineering-capstone/-/raw/6737b701e6557560e08c20526153d9229c4797b7/releases/personnel-events-dashboard-v1.0.0.apk"
+          class="download-btn"
+          id="downloadApk"
         >
-          📁 View Source Code
+          📱 Download APK
         </a>
       </div>
 
@@ -304,16 +302,6 @@
       // Set current date
       document.getElementById("currentDate").textContent =
         new Date().toLocaleDateString();
-
-      // Placeholder for download functionality
-      document
-        .getElementById("downloadApk")
-        .addEventListener("click", function (e) {
-          e.preventDefault();
-          alert(
-            "APK download will be available once deployed to Firebase App Distribution"
-          );
-        });
     </script>
   </body>
 </html>
