@@ -36,6 +36,12 @@
 │   │   │   │   │   │   │   ├── ui/
 │   │   │   │   │   │   │   │   ├── components/
 │   │   │   │   │   │   │   │   │   └── personnel/
+│   │   │   │   │   │   │   │   │   │   ├── AddPersonDialog.kt
+│   │   │   │   │   │   │   │   │   │   ├── EditPersonDialog.kt
+│   │   │   │   │   │   │   │   │   │   ├── PersonDetailsMenuContent.kt
+│   │   │   │   │   │   │   │   │   │   ├── PersonPill.kt
+│   │   │   │   │   │   │   │   │   │   ├── PersonPillWithMenu.kt
+│   │   │   │   │   │   │   │   │   │   └── PersonSelectorDialog.kt
 │   │   │   │   │   │   │   │   └── theme/
 │   │   │   │   │   │   │   │   │   ├── Color.kt
 │   │   │   │   │   │   │   │   │   ├── Theme.kt
@@ -87,6 +93,7 @@
 ├── gradlew.bat
 ├── local.properties
 ├── personnel-events-keystore.jks
+├── Powershell Script for updating STRUCTUREmd file.txt
 ├── README.md
 ├── settings.gradle.kts
 └── STRUCTURE.md
