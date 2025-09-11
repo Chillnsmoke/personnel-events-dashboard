@@ -1,4 +1,4 @@
-package com.example.personneleventsdashboard.ui.components.dialogs
+package com.example.personneleventsdashboard.ui.components.personnel
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.personneleventsdashboard.model.Person
 import com.example.personneleventsdashboard.model.Shop
-import com.example.personneleventsdashboard.ui.components.personnel.colorForRank
 
 @Composable
 fun PersonSelectorDialog(

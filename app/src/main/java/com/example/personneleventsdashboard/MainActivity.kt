@@ -12,14 +12,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.personneleventsdashboard.ui.theme.PersonnelEventsDashboardTheme
 import com.example.personneleventsdashboard.model.Person
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.Surface
 import androidx.lifecycle.lifecycleScope
 import com.example.personneleventsdashboard.data.AppDatabaseProvider
 import kotlinx.coroutines.launch
@@ -34,7 +32,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import kotlin.collections.joinToString
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
 import com.example.personneleventsdashboard.ui.theme.*
@@ -54,8 +51,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.personneleventsdashboard.ui.theme.Shop
 import kotlinx.coroutines.flow.Flow
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -64,44 +59,26 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Divider
 import androidx.compose.material3.IconButton
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import java.time.YearMonth
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import androidx.compose.material3.IconButton
-import androidx.compose.foundation.border
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.clip
 import com.example.personneleventsdashboard.model.CalendarDay
 import com.example.personneleventsdashboard.model.CalendarMonth
 import com.example.personneleventsdashboard.model.CalendarUtils
 import com.example.personneleventsdashboard.model.EventType
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.snapping.SnapPosition
-import androidx.compose.material3.ripple  // Use material3 ripple, not material.ripple
-import androidx.compose.runtime.remember
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import com.example.personneleventsdashboard.data.EventRepository
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import com.example.personneleventsdashboard.model.Event
 import com.example.personneleventsdashboard.viewmodel.EventViewModel
 import com.example.personneleventsdashboard.viewmodel.EventViewModelFactory
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.times
@@ -113,14 +90,12 @@ import java.time.temporal.ChronoUnit
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
-import java.time.format.TextStyle
 import com.example.personneleventsdashboard.ui.components.personnel.PersonPill
 import com.example.personneleventsdashboard.ui.components.personnel.colorForRank
-import com.example.personneleventsdashboard.ui.components.personnel.PersonDetailsMenuContent
 import com.example.personneleventsdashboard.ui.components.personnel.PersonPillWithMenu
-import com.example.personneleventsdashboard.ui.components.dialogs.AddPersonDialog
-import com.example.personneleventsdashboard.ui.components.dialogs.PersonSelectorDialog
-import com.example.personneleventsdashboard.ui.components.dialogs.EditPersonDialog
+import com.example.personneleventsdashboard.ui.components.personnel.AddPersonDialog
+import com.example.personneleventsdashboard.ui.components.personnel.PersonSelectorDialog
+import com.example.personneleventsdashboard.ui.components.personnel.EditPersonDialog
 
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {

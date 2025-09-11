@@ -1,4 +1,4 @@
-package com.example.personneleventsdashboard.ui.components.dialogs
+package com.example.personneleventsdashboard.ui.components.personnel
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
