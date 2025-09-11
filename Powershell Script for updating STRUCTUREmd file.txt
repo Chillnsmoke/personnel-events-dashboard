@@ -1,0 +1,39 @@
+# Exclusions you don't want listed
+$Exclude = @('.git','.gradle','build','.idea','node_modules','out','.vs','.vscode','.DS_Store')
+
+function Write-Tree {
+  param(
+    [string]$Path='.',
+    [int]$Depth=15,
+    [string[]]$Exclude
+  )
+  $rootName = Split-Path -Leaf (Resolve-Path $Path)
+  $lines = New-Object System.Collections.Generic.List[string]
+  $lines.Add("$rootName/")
+
+  function Walk([string]$p,[int]$level){
+    if ($level -ge $Depth) { return }
+    $items = Get-ChildItem -LiteralPath $p -Force | Where-Object {
+      -not ($Exclude -contains $_.Name)
+    } | Sort-Object { $_.PSIsContainer -notmatch $true }, Name
+
+    $count = $items.Count
+    for ($i=0; $i -lt $count; $i++){
+      $it = $items[$i]
+      $prefix = ('│   ' * $level)
+      $branch = if ($i -eq $count-1) { '└── ' } else { '├── ' }
+      if ($it.PSIsContainer){
+        $lines.Add("$prefix$branch$($it.Name)/")
+        Walk $it.FullName ($level+1)
+      } else {
+        $lines.Add("$prefix$branch$($it.Name)")
+      }
+    }
+  }
+
+  Walk (Resolve-Path $Path) 0
+  $lines -join "`r`n"
+}
+
+Write-Tree -Path . -Depth 15 -Exclude $Exclude | Set-Content -Encoding UTF8 STRUCTURE.md
+Write-Host "Wrote STRUCTURE.md"
