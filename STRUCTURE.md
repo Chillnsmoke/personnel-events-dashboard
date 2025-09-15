@@ -35,6 +35,18 @@
 │   │   │   │   │   │   │   │   └── TailNumber.kt
 │   │   │   │   │   │   │   ├── ui/
 │   │   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   │   ├── events/
+│   │   │   │   │   │   │   │   │   │   ├── dialogs/
+│   │   │   │   │   │   │   │   │   │   │   ├── AddEventDialog.kt
+│   │   │   │   │   │   │   │   │   │   │   ├── CustomEventDialog.kt
+│   │   │   │   │   │   │   │   │   │   │   ├── DatePickerDialog.kt
+│   │   │   │   │   │   │   │   │   │   │   ├── EditEventDialog.kt
+│   │   │   │   │   │   │   │   │   │   │   ├── EventDetailsDialog.kt
+│   │   │   │   │   │   │   │   │   │   │   ├── PresetEventDialog.kt
+│   │   │   │   │   │   │   │   │   │   │   └── ShowAllEventsDialog.kt
+│   │   │   │   │   │   │   │   │   │   ├── CalendarComponents.kt
+│   │   │   │   │   │   │   │   │   │   ├── EventHelpers.kt
+│   │   │   │   │   │   │   │   │   │   └── EventIndicator.kt
 │   │   │   │   │   │   │   │   │   └── personnel/
 │   │   │   │   │   │   │   │   │   │   ├── AddPersonDialog.kt
 │   │   │   │   │   │   │   │   │   │   ├── EditPersonDialog.kt
