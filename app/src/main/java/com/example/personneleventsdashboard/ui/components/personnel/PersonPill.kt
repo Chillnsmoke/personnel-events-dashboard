@@ -36,7 +36,8 @@ import com.example.personneleventsdashboard.ui.theme.SLDBorder
 import com.example.personneleventsdashboard.ui.theme.DPLFill
 import com.example.personneleventsdashboard.ui.theme.DPLBorder
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 
 
 @Composable
@@ -56,6 +57,12 @@ fun PersonPill(
     person: Person,
     onClick: () -> Unit
 ) {
+    // Determine if person has any status
+    val hasStatus = person.status.contains("LV") ||
+            person.status.contains("SLD") ||
+            person.status.contains("TDY") ||
+            person.status.contains("Deployed")
+
     // Determine colors based on status (status overrides rank colors)
     val (fillColor, borderColor, textColor) = when {
         person.status.contains("LV") -> Triple(LVFill, LVBorder, Charcoal)
@@ -86,7 +93,9 @@ fun PersonPill(
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 6.dp)
             .height(40.dp)
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .blur(if (hasStatus) 1.5.dp else 0.dp) // Add blur for status
+            .alpha(if (hasStatus) 0.7f else 1.0f),
         border = borderColor?.let { BorderStroke(3.dp, it) }
     ) {
         Box(
