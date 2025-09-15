@@ -112,6 +112,9 @@ import com.example.personneleventsdashboard.ui.components.events.dialogs.EditEve
 import com.example.personneleventsdashboard.ui.components.events.dialogs.PresetEventDialog
 import com.example.personneleventsdashboard.ui.components.events.dialogs.ShowAllEventsDialog
 import com.example.personneleventsdashboard.ui.components.events.dialogs.EventDetailsDialog
+import com.example.personneleventsdashboard.ui.components.shops.getShopNameById
+import com.example.personneleventsdashboard.ui.components.shops.ShopColumn
+
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
@@ -176,59 +179,44 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(Background)
                 ) {
-                    Row(Modifier.fillMaxSize()) {
-                        // LEFT SIDE
-                        Column(
-                            Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                        ) {
-                            Box(
-                                Modifier
-                                    .weight(3f) // 75%
-                                    .fillMaxWidth()
-                            ) {
-                                ShopRosterQuadrant(
-                                    shops = shopList,
-                                    people = personViewModel.people.collectAsState(initial = emptyList()).value,
-                                    shopList = shopList,
-                                    personViewModel = personViewModel
-                                )
-                            }
-                            Box(
-                                Modifier
-                                    .weight(1f) // 25%
-                                    .fillMaxWidth()
-                            ) {
-                                FilterAndManageQuadrant(shopList = shopList)
-                            }
-                        }
-                        // RIGHT SIDE
-                        Column(
-                            Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                        ) {
-                            Box(
-                                Modifier
-                                    .weight(3f) // 75%
-                                    .fillMaxWidth()
-                            ) {
-                                EventCalendarQuadrant()
-                            }
-                            Box(
-                                Modifier
-                                    .weight(1f) // 25%
-                                    .fillMaxWidth()
-                            ) {
-                                StatusTrackerQuadrant(
-                                    people = personViewModel.people.collectAsState(initial = emptyList()).value,
-                                    shopList = shopList
-                                )
-                            }
-                        }
+                    // LEFT HALF - Full Shop Roster (with integrated filtering)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        ShopRosterSection(
+                            shops = shopList,
+                            people = personViewModel.people.collectAsState(initial = emptyList()).value,
+                            shopList = shopList,
+                            personViewModel = personViewModel
+                        )
                     }
 
+                    // RIGHT HALF - Calendar + Upcoming Events
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        // Calendar (75% of right side)
+                        Box(
+                            modifier = Modifier
+                                .weight(3f)
+                                .fillMaxWidth()
+                        ) {
+                            EventCalendarQuadrant()
+                        }
+
+                        // Upcoming Events (25% of right side)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        ) {
+                            UpcomingEventsSection()
+                        }
+                    }
                 }
             }
 
@@ -484,7 +472,7 @@ fun PlaceholderQuadrant(label: String) {
 }
 
     @Composable
-fun ShopRosterQuadrant(
+fun ShopRosterSection(
     shops: List<Shop>,
     people: List<Person>,
     shopList: List<Shop>,
@@ -559,79 +547,6 @@ fun ShopRosterQuadrant(
         }
     }
 }
-
-    @Composable
-fun ShopColumn(
-    shop: Shop,
-    people: List<Person>,
-    shopList: List<Shop>,
-    personViewModel: PersonViewModel,
-    modifier: Modifier = Modifier
-) {
-        // Sorting as specified:
-        val rankOrder = mapOf(
-            "AMTCM" to 0, "AETCM" to 0,
-            "AMTCS" to 1, "AETCS" to 1,
-            "AMTC"  to 2, "AETC"  to 2,
-            "AET1"  to 3, "AMT1"  to 3,
-            "AET2"  to 4, "AMT2"  to 4,
-            "AET3"  to 5, "AMT3"  to 5,
-            "AN"    to 6
-        )
-        val sortedPeople = people.sortedWith(compareBy(
-            { rankOrder[it.rank] ?: Int.MAX_VALUE },
-            { if (it.rank.startsWith("AET")) 0 else 1 },
-            { it.rank },
-            { it.lastName },
-            { it.firstName }
-        ))
-        Column(
-            modifier = modifier
-                .width(380.dp)
-                .padding(8.dp)
-        ) {
-            // Heading as a Card
-            Card(
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Shop),
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .shadow(
-                        elevation = 1.dp,
-                        shape = RoundedCornerShape(10.dp),
-                        ambientColor = Color.Black.copy(alpha = 1f),
-                        spotColor = Color.Black.copy(alpha = 1f),
-                        clip = false
-                    )
-                    .border(3.dp, (Border), RoundedCornerShape(10.dp))
-                    .fillMaxWidth()
-                    .height(46.dp) // You can adjust height as desired
-            ) {
-                Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = shop.name,
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-
-            // List of people as pills
-            sortedPeople.forEach { person ->
-                PersonPillWithMenu(
-                    person = person,
-                    shopList = shopList,
-                    onSave = { updatedPerson ->
-                        // Save to DB (use your ViewModel updatePerson method)
-                        personViewModel.updatePerson(updatedPerson) }
-                )
-            }
-        }
-    }
 
     @Composable
     fun FilterAndManageQuadrant(shopList: List<Shop>) {
@@ -1168,10 +1083,6 @@ fun ShopColumn(
         }
     }
 
-    fun getShopNameById(shopId: Int, shopList: List<Shop>): String {
-        return shopList.firstOrNull { it.shopId == shopId }?.name ?: "Unknown"
-    }
-
     @Composable
     fun EventCalendarQuadrant() {
         var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
@@ -1319,6 +1230,50 @@ fun ShopColumn(
                     selectedEvent = event
                     showAllEventsDialog = null
                 }
+            )
+        }
+    }
+
+    @Composable
+    fun UpcomingEventsSection() {
+        // Get context and setup ViewModels (similar to EventCalendarQuadrant)
+        val context = LocalContext.current
+        val eventDao = AppDatabaseProvider.getDatabase(context).eventDao()
+        val eventTypeDao = AppDatabaseProvider.getDatabase(context).eventTypeDao()
+        val eventRepository = EventRepository(eventDao, eventTypeDao)
+        val eventViewModel: EventViewModel = viewModel(
+            factory = EventViewModelFactory(eventRepository)
+        )
+
+        val eventTypes = eventViewModel.eventTypes.collectAsState(initial = emptyList()).value
+        val allEvents = eventViewModel.events.collectAsState(initial = emptyList()).value
+
+        // Filter for upcoming events (next 4 months)
+        val today = LocalDate.now()
+        val fourMonthsFromNow = today.plusMonths(4)
+
+        val upcomingEvents = remember(allEvents) {
+            allEvents.filter { event ->
+                event.startDate >= today && event.startDate <= fourMonthsFromNow
+            }.sortedBy { it.startDate }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            Text(
+                text = "Upcoming Events (Next 4 Months)",
+                style = MaterialTheme.typography.titleLarge,
+                color = LightGrey,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // TODO: Event list display
+            Text(
+                text = "Events: ${upcomingEvents.size}",
+                color = LightGrey
             )
         }
     }
