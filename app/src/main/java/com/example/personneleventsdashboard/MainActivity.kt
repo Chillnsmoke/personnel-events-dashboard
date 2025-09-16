@@ -472,81 +472,236 @@ fun PlaceholderQuadrant(label: String) {
 }
 
     @Composable
-fun ShopRosterSection(
-    shops: List<Shop>,
-    people: List<Person>,
-    shopList: List<Shop>,
-    personViewModel: PersonViewModel
-) {
-    // Map shops by name for quick lookup
-    val shopMap = shops.associateBy { it.name }
-    val peopleByShop = people.groupBy { it.shopId }
+    fun ShopRosterSection(
+        shops: List<Shop>,
+        people: List<Person>,
+        shopList: List<Shop>,
+        personViewModel: PersonViewModel
+    ) {
+        // Dialog states
+        var showAddPersonDialog by remember { mutableStateOf(false) }
+        var showPersonSelectorDialog by remember { mutableStateOf(false) }
+        var showFilterDialog by remember { mutableStateOf(false) }
+        var selectedPersonToEdit by remember { mutableStateOf<Person?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // 2. Division Managers and Maintenance Control (spread out)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            shopMap["LCPO"]?.let { shop ->
-                ShopColumn(
-                    shop = shop,
-                    people = peopleByShop[shop.shopId].orEmpty(),
-                    shopList = shopList,
-                    personViewModel = personViewModel
-                )
-            }
-            shopMap["Division Managers"]?.let { shop ->
-                ShopColumn(
-                    shop = shop,
-                    people = peopleByShop[shop.shopId].orEmpty(),
-                    shopList = shopList,
-                    personViewModel = personViewModel
-                )
-            }
-            shopMap["Maintenance Control"]?.let { shop ->
-                ShopColumn(
-                    shop = shop,
-                    people = peopleByShop[shop.shopId].orEmpty(),
-                    shopList = shopList,
-                    personViewModel = personViewModel
-                )
-            }
+        // Get filter options (for future FilterPersonnelDialog)
+        val allQualifications = remember(people) {
+            people.mapNotNull { it.qualifications }
+                .flatMap { it.split(",").map { q -> q.trim() } }
+                .distinct()
+                .sorted()
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        // 3. Engine, Metal, Prop, Avionics, Sensor (centered)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            listOf("Engine", "Metal", "Prop", "Avionics", "Sensor").forEach { name ->
-                shopMap[name]?.let { shop ->
-                    ShopColumn(
-                        shop = shop,
-                        people = peopleByShop[shop.shopId].orEmpty(),
-                        shopList = shopList,
-                        personViewModel = personViewModel
-                    )
+        val allRanks = remember(people) {
+            people.map { it.rank }.distinct().sorted()
+        }
+        val allSections = remember(people) {
+            people.map { it.dutySection }.distinct().sorted()
+        }
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Main shop roster area (takes most of the space)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                // Existing shop roster layout
+                val shopMap = shops.associateBy { it.name }
+                val peopleByShop = people.groupBy { it.shopId }
+
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // LCPO, Division Managers, Maintenance Control (spread out)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        shopMap["LCPO"]?.let { shop ->
+                            ShopColumn(
+                                shop = shop,
+                                people = peopleByShop[shop.shopId].orEmpty(),
+                                shopList = shopList,
+                                personViewModel = personViewModel
+                            )
+                        }
+                        shopMap["Division Managers"]?.let { shop ->
+                            ShopColumn(
+                                shop = shop,
+                                people = peopleByShop[shop.shopId].orEmpty(),
+                                shopList = shopList,
+                                personViewModel = personViewModel
+                            )
+                        }
+                        shopMap["Maintenance Control"]?.let { shop ->
+                            ShopColumn(
+                                shop = shop,
+                                people = peopleByShop[shop.shopId].orEmpty(),
+                                shopList = shopList,
+                                personViewModel = personViewModel
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Engine, Metal, Prop, Avionics, Sensor (centered)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf("Engine", "Metal", "Prop", "Avionics", "Sensor").forEach { name ->
+                            shopMap[name]?.let { shop ->
+                                ShopColumn(
+                                    shop = shop,
+                                    people = peopleByShop[shop.shopId].orEmpty(),
+                                    shopList = shopList,
+                                    personViewModel = personViewModel
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Load Cage, Line Crew, Tool Room, QA, Nights (centered)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf("Load Cage", "Line Crew", "Tool Room", "QA", "Nights").forEach { name ->
+                            shopMap[name]?.let { shop ->
+                                ShopColumn(
+                                    shop = shop,
+                                    people = peopleByShop[shop.shopId].orEmpty(),
+                                    shopList = shopList,
+                                    personViewModel = personViewModel
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Bottom personnel management buttons
+            Row(
+                modifier = Modifier
+                    .width(550.dp)
+                    .height(60.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Add Person Button
+                OutlinedButton(
+                    onClick = { showAddPersonDialog = true },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.LightGray.copy(alpha = 0.5f),
+                        contentColor = Forest.copy(alpha = 0.8f)
+                    ),
+                    border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f))
+                ) {
+                    Text("Add Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+
+                // Edit Person Button
+                OutlinedButton(
+                    onClick = { showPersonSelectorDialog = true },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.LightGray.copy(alpha = 0.5f),
+                        contentColor = DarkBlue.copy(alpha = 0.8f)
+                    ),
+                    border = BorderStroke(2.dp, DarkBlue.copy(alpha = 0.8f))
+                ) {
+                    Text("Edit Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+
+                // Filter Personnel Button
+                OutlinedButton(
+                    onClick = { showFilterDialog = true },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.LightGray.copy(alpha = 0.5f),
+                        contentColor = Orange.copy(alpha = 0.8f)
+                    ),
+                    border = BorderStroke(2.dp, Orange.copy(alpha = 0.8f))
+                ) {
+                    Text("Filter Personnel", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        // 4. Load Cage, Line Crew, Tool Room, QA, Nights (centered)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            listOf("Load Cage", "Line Crew", "Tool Room", "QA", "Nights").forEach { name ->
-                shopMap[name]?.let { shop ->
-                    ShopColumn(shop = shop,
-                        people = peopleByShop[shop.shopId].orEmpty(),
-                        shopList = shopList,
-                        personViewModel = personViewModel)
+
+        // Dialog handlers - Add Person
+        if (showAddPersonDialog) {
+            AddPersonDialog(
+                shopList = shopList,
+                allQualifications = allQualifications,
+                allRanks = allRanks,
+                allSections = allSections,
+                onDismiss = { showAddPersonDialog = false },
+                onSave = { newPerson ->
+                    personViewModel.insertPerson(newPerson)
+                    showAddPersonDialog = false
+                },
+                onSaveAndContinue = { newPerson ->
+                    personViewModel.insertPerson(newPerson)
+                    // Keep dialog open for next entry
                 }
-            }
+            )
+        }
+
+        // Dialog handlers - Person Selector
+        if (showPersonSelectorDialog) {
+            PersonSelectorDialog(
+                people = people,
+                shopList = shopList,
+                onPersonSelected = { person ->
+                    selectedPersonToEdit = person
+                    showPersonSelectorDialog = false
+                },
+                onDismiss = { showPersonSelectorDialog = false }
+            )
+        }
+
+        // Dialog handlers - Edit Person
+        selectedPersonToEdit?.let { person ->
+            EditPersonDialog(
+                person = person,
+                shopList = shopList,
+                allQualifications = allQualifications,
+                allRanks = allRanks,
+                allSections = allSections,
+                onDismiss = { selectedPersonToEdit = null },
+                onSave = { updatedPerson ->
+                    personViewModel.updatePerson(updatedPerson)
+                    selectedPersonToEdit = null
+                },
+                onSaveAndEditAnother = { updatedPerson ->
+                    personViewModel.updatePerson(updatedPerson)
+                    // Keep dialog open but switch to selector
+                    selectedPersonToEdit = null
+                    showPersonSelectorDialog = true
+                },
+                onDelete = { personToDelete ->
+                    personViewModel.deletePerson(personToDelete)
+                    selectedPersonToEdit = null
+                }
+            )
+        }
+
+        // TODO: FilterPersonnelDialog
+        if (showFilterDialog) {
+            // Placeholder for FilterPersonnelDialog - we'll create this next
+            AlertDialog(
+                onDismissRequest = { showFilterDialog = false },
+                title = { Text("Filter Personnel") },
+                text = { Text("FilterPersonnelDialog coming next!") },
+                confirmButton = {
+                    Button(onClick = { showFilterDialog = false }) {
+                        Text("Close")
+                    }
+                }
+            )
         }
     }
-}
 
     @Composable
     fun FilterAndManageQuadrant(shopList: List<Shop>) {

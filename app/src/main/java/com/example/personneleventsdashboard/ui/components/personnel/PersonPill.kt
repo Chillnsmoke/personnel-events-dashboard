@@ -75,13 +75,14 @@ fun PersonPill(
     val isChief = person.rank.startsWith("AMTC") || person.rank.startsWith("AETC")
     val pillTextStyle = if (isChief) {
         MaterialTheme.typography.titleLarge.copy(
-            color = textColor,
+            color = E4,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 28.sp
         )
     } else {
         MaterialTheme.typography.titleLarge.copy(
             color = textColor,
+            fontWeight = FontWeight.Bold,
             fontSize = 26.sp
         )
     }

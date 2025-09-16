@@ -26,6 +26,11 @@ import com.example.personneleventsdashboard.ui.components.personnel.PersonPillWi
 import com.example.personneleventsdashboard.ui.theme.Border
 import com.example.personneleventsdashboard.ui.theme.Shop
 import com.example.personneleventsdashboard.viewmodel.PersonViewModel
+import androidx.compose.foundation.background
+import com.example.personneleventsdashboard.ui.theme.E4
+import com.example.personneleventsdashboard.ui.theme.E7
+import com.example.personneleventsdashboard.ui.theme.ShopBorderGradient
+import com.example.personneleventsdashboard.ui.theme.ShopHeaderGradient
 
 @Composable
 fun ShopColumn(
@@ -60,19 +65,16 @@ fun ShopColumn(
         // Heading as a Card
         Card(
             shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = Shop),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent), // Make transparent
             modifier = Modifier
                 .padding(bottom = 8.dp)
-                .shadow(
-                    elevation = 1.dp,
-                    shape = RoundedCornerShape(10.dp),
-                    ambientColor = Color.Black.copy(alpha = 1f),
-                    spotColor = Color.Black.copy(alpha = 1f),
-                    clip = false
+                .background(
+                    brush = ShopHeaderGradient,
+                    shape = RoundedCornerShape(10.dp)
                 )
-                .border(3.dp, (Border), RoundedCornerShape(10.dp))
+                .border(3.dp, ShopBorderGradient, RoundedCornerShape(10.dp))
                 .fillMaxWidth()
-                .height(46.dp) // You can adjust height as desired
+                .height(56.dp)
         ) {
             Box(
                 Modifier.fillMaxSize(),
@@ -81,8 +83,8 @@ fun ShopColumn(
                 Text(
                     text = shop.name,
                     style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    fontWeight = FontWeight.ExtraBold,
+                    color = E7
                 )
             }
         }
