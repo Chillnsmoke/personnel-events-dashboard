@@ -112,8 +112,13 @@ import com.example.personneleventsdashboard.ui.components.events.dialogs.EditEve
 import com.example.personneleventsdashboard.ui.components.events.dialogs.PresetEventDialog
 import com.example.personneleventsdashboard.ui.components.events.dialogs.ShowAllEventsDialog
 import com.example.personneleventsdashboard.ui.components.events.dialogs.EventDetailsDialog
+import com.example.personneleventsdashboard.ui.components.personnel.FilterState
+import com.example.personneleventsdashboard.ui.components.personnel.applyFilters
 import com.example.personneleventsdashboard.ui.components.shops.getShopNameById
 import com.example.personneleventsdashboard.ui.components.shops.ShopColumn
+import com.example.personneleventsdashboard.ui.components.personnel.FilterTypeSelector
+import com.example.personneleventsdashboard.ui.components.personnel.FilterValueSelector
+
 
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
@@ -463,14 +468,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-        @Composable
-fun PlaceholderQuadrant(label: String) {
-    Text(
-        text = label,
-        modifier = Modifier.fillMaxSize()
-    )
-}
-
     @Composable
     fun ShopRosterSection(
         shops: List<Shop>,
@@ -481,10 +478,37 @@ fun PlaceholderQuadrant(label: String) {
         // Dialog states
         var showAddPersonDialog by remember { mutableStateOf(false) }
         var showPersonSelectorDialog by remember { mutableStateOf(false) }
-        var showFilterDialog by remember { mutableStateOf(false) }
         var selectedPersonToEdit by remember { mutableStateOf<Person?>(null) }
 
-        // Get filter options (for future FilterPersonnelDialog)
+        // Filter state management
+        var currentFilterState by remember { mutableStateOf(FilterState()) }
+
+        // Calculate filtered people for visual feedback
+        val filteredPeople = remember(currentFilterState, people) {
+            // Only apply filters if values are actually set (not empty strings)
+            val hasActiveFilters = (currentFilterState.filter1?.second?.isNotEmpty() == true) ||
+                    (currentFilterState.filter2?.second?.isNotEmpty() == true) ||
+                    (currentFilterState.filter3?.second?.isNotEmpty() == true) ||
+                    (currentFilterState.filter4?.second?.isNotEmpty() == true) ||
+                    (currentFilterState.filter5?.second?.isNotEmpty() == true)
+
+            if (!hasActiveFilters) {
+                people // No active filters = show all normally
+            } else {
+                applyFilters(
+                    people,
+                    currentFilterState.searchQuery,
+                    if (currentFilterState.filter1?.second?.isNotEmpty() == true) currentFilterState.filter1 else null,
+                    if (currentFilterState.filter2?.second?.isNotEmpty() == true) currentFilterState.filter2 else null,
+                    if (currentFilterState.filter3?.second?.isNotEmpty() == true) currentFilterState.filter3 else null,
+                    if (currentFilterState.filter4?.second?.isNotEmpty() == true) currentFilterState.filter4 else null,
+                    if (currentFilterState.filter5?.second?.isNotEmpty() == true) currentFilterState.filter5 else null,
+                    shopList
+                )
+            }
+        }
+
+        // Get filter options
         val allQualifications = remember(people) {
             people.mapNotNull { it.qualifications }
                 .flatMap { it.split(",").map { q -> q.trim() } }
@@ -520,7 +544,8 @@ fun PlaceholderQuadrant(label: String) {
                                 shop = shop,
                                 people = peopleByShop[shop.shopId].orEmpty(),
                                 shopList = shopList,
-                                personViewModel = personViewModel
+                                personViewModel = personViewModel,
+                                filteredPeople = filteredPeople
                             )
                         }
                         shopMap["Division Managers"]?.let { shop ->
@@ -528,7 +553,8 @@ fun PlaceholderQuadrant(label: String) {
                                 shop = shop,
                                 people = peopleByShop[shop.shopId].orEmpty(),
                                 shopList = shopList,
-                                personViewModel = personViewModel
+                                personViewModel = personViewModel,
+                                filteredPeople = filteredPeople
                             )
                         }
                         shopMap["Maintenance Control"]?.let { shop ->
@@ -536,7 +562,8 @@ fun PlaceholderQuadrant(label: String) {
                                 shop = shop,
                                 people = peopleByShop[shop.shopId].orEmpty(),
                                 shopList = shopList,
-                                personViewModel = personViewModel
+                                personViewModel = personViewModel,
+                                filteredPeople = filteredPeople
                             )
                         }
                     }
@@ -553,7 +580,8 @@ fun PlaceholderQuadrant(label: String) {
                                     shop = shop,
                                     people = peopleByShop[shop.shopId].orEmpty(),
                                     shopList = shopList,
-                                    personViewModel = personViewModel
+                                    personViewModel = personViewModel,
+                                    filteredPeople = filteredPeople
                                 )
                             }
                         }
@@ -565,13 +593,20 @@ fun PlaceholderQuadrant(label: String) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        listOf("Load Cage", "Line Crew", "Tool Room", "QA", "Nights").forEach { name ->
+                        listOf(
+                            "Load Cage",
+                            "Line Crew",
+                            "Tool Room",
+                            "QA",
+                            "Nights"
+                        ).forEach { name ->
                             shopMap[name]?.let { shop ->
                                 ShopColumn(
                                     shop = shop,
                                     people = peopleByShop[shop.shopId].orEmpty(),
                                     shopList = shopList,
-                                    personViewModel = personViewModel
+                                    personViewModel = personViewModel,
+                                    filteredPeople = filteredPeople
                                 )
                             }
                         }
@@ -579,661 +614,673 @@ fun PlaceholderQuadrant(label: String) {
                 }
             }
 
-            // Bottom personnel management buttons
-            Row(
-                modifier = Modifier
-                    .width(550.dp)
-                    .height(60.dp)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Add Person Button
-                OutlinedButton(
-                    onClick = { showAddPersonDialog = true },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.LightGray.copy(alpha = 0.5f),
-                        contentColor = Forest.copy(alpha = 0.8f)
-                    ),
-                    border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f))
-                ) {
-                    Text("Add Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-
-                // Edit Person Button
-                OutlinedButton(
-                    onClick = { showPersonSelectorDialog = true },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.LightGray.copy(alpha = 0.5f),
-                        contentColor = DarkBlue.copy(alpha = 0.8f)
-                    ),
-                    border = BorderStroke(2.dp, DarkBlue.copy(alpha = 0.8f))
-                ) {
-                    Text("Edit Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-
-                // Filter Personnel Button
-                OutlinedButton(
-                    onClick = { showFilterDialog = true },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.LightGray.copy(alpha = 0.5f),
-                        contentColor = Orange.copy(alpha = 0.8f)
-                    ),
-                    border = BorderStroke(2.dp, Orange.copy(alpha = 0.8f))
-                ) {
-                    Text("Filter Personnel", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-            }
-        }
-
-        // Dialog handlers - Add Person
-        if (showAddPersonDialog) {
-            AddPersonDialog(
-                shopList = shopList,
-                allQualifications = allQualifications,
-                allRanks = allRanks,
-                allSections = allSections,
-                onDismiss = { showAddPersonDialog = false },
-                onSave = { newPerson ->
-                    personViewModel.insertPerson(newPerson)
-                    showAddPersonDialog = false
-                },
-                onSaveAndContinue = { newPerson ->
-                    personViewModel.insertPerson(newPerson)
-                    // Keep dialog open for next entry
-                }
-            )
-        }
-
-        // Dialog handlers - Person Selector
-        if (showPersonSelectorDialog) {
-            PersonSelectorDialog(
-                people = people,
-                shopList = shopList,
-                onPersonSelected = { person ->
-                    selectedPersonToEdit = person
-                    showPersonSelectorDialog = false
-                },
-                onDismiss = { showPersonSelectorDialog = false }
-            )
-        }
-
-        // Dialog handlers - Edit Person
-        selectedPersonToEdit?.let { person ->
-            EditPersonDialog(
-                person = person,
-                shopList = shopList,
-                allQualifications = allQualifications,
-                allRanks = allRanks,
-                allSections = allSections,
-                onDismiss = { selectedPersonToEdit = null },
-                onSave = { updatedPerson ->
-                    personViewModel.updatePerson(updatedPerson)
-                    selectedPersonToEdit = null
-                },
-                onSaveAndEditAnother = { updatedPerson ->
-                    personViewModel.updatePerson(updatedPerson)
-                    // Keep dialog open but switch to selector
-                    selectedPersonToEdit = null
-                    showPersonSelectorDialog = true
-                },
-                onDelete = { personToDelete ->
-                    personViewModel.deletePerson(personToDelete)
-                    selectedPersonToEdit = null
-                }
-            )
-        }
-
-        // TODO: FilterPersonnelDialog
-        if (showFilterDialog) {
-            // Placeholder for FilterPersonnelDialog - we'll create this next
-            AlertDialog(
-                onDismissRequest = { showFilterDialog = false },
-                title = { Text("Filter Personnel") },
-                text = { Text("FilterPersonnelDialog coming next!") },
-                confirmButton = {
-                    Button(onClick = { showFilterDialog = false }) {
-                        Text("Close")
-                    }
-                }
-            )
-        }
-    }
-
-    @Composable
-    fun FilterAndManageQuadrant(shopList: List<Shop>) {
-        val personViewModel: PersonViewModel = viewModel()
-        val people by personViewModel.people.collectAsState()
-
-        // Get all available filter options
-        val allQualifications = remember(people) {
-            people.mapNotNull { it.qualifications }
-                .flatMap { it.split(",").map { q -> q.trim() } }
-                .distinct()
-                .sorted()
-        }
-
-        val allRanks = remember(people) {
-            people.map { it.rank }.distinct().sorted()
-        }
-
-        val allSections = remember(people) {
-            people.map { it.dutySection }.distinct().sorted()
-        }
-
-        val allStatuses = remember(people) {
-            people.map { it.status }.distinct().filter { it.isNotEmpty() }.sorted()
-        }
-
-        // State for up to 5 filters
-        var filter1 by remember { mutableStateOf<Pair<String, String>?>(null) } // (FilterType, FilterValue)
-        var filter2 by remember { mutableStateOf<Pair<String, String>?>(null) }
-        var filter3 by remember { mutableStateOf<Pair<String, String>?>(null) }
-        var filter4 by remember { mutableStateOf<Pair<String, String>?>(null) }
-        var filter5 by remember { mutableStateOf<Pair<String, String>?>(null) }
-
-        // Apply all active filters - only show results if at least one filter is active
-        val filteredPeople = remember(filter1, filter2, filter3, filter4, filter5, people) {
-            // If no filters are applied, return empty list
-            if (filter1 == null && filter2 == null && filter3 == null && filter4 == null && filter5 == null) {
-                return@remember emptyList()
-            }
-
-            var result = people
-
-            filter1?.let { (type, value) ->
-                result = result.filter { person ->
-                    when (type) {
-                        "Qualification" -> person.qualifications.contains(value)
-                        "Rank" -> person.rank == value
-                        "Section" -> person.dutySection == value
-                        "Status" -> person.status.contains(value)
-                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
-                        else -> true
-                    }
-                }
-            }
-
-            filter2?.let { (type, value) ->
-                result = result.filter { person ->
-                    when (type) {
-                        "Qualification" -> person.qualifications.contains(value)
-                        "Rank" -> person.rank == value
-                        "Section" -> person.dutySection == value
-                        "Status" -> person.status.contains(value)
-                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
-                        else -> true
-                    }
-                }
-            }
-
-            filter3?.let { (type, value) ->
-                result = result.filter { person ->
-                    when (type) {
-                        "Qualification" -> person.qualifications.contains(value)
-                        "Rank" -> person.rank == value
-                        "Section" -> person.dutySection == value
-                        "Status" -> person.status.contains(value)
-                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
-                        else -> true
-                    }
-                }
-            }
-
-            filter4?.let { (type, value) ->
-                result = result.filter { person ->
-                    when (type) {
-                        "Qualification" -> person.qualifications.contains(value)
-                        "Rank" -> person.rank == value
-                        "Section" -> person.dutySection == value
-                        "Status" -> person.status.contains(value)
-                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
-                        else -> true
-                    }
-                }
-            }
-
-            filter5?.let { (type, value) ->
-                result = result.filter { person ->
-                    when (type) {
-                        "Qualification" -> person.qualifications.contains(value)
-                        "Rank" -> person.rank == value
-                        "Section" -> person.dutySection == value
-                        "Status" -> person.status.contains(value)
-                        "Shop" -> shopList.find { it.shopId == person.shopId }?.name == value
-                        else -> true
-                    }
-                }
-            }
-
-            result
-        }
-
-        // Split filtered people into columns (8 per column, up to 5 columns)
-        val resultColumns = remember(filteredPeople) {
-            if (filteredPeople.isEmpty()) {
-                emptyList()
-            } else {
-                filteredPeople.chunked(8).take(5) // Max 5 columns, 8 people per column
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-        ) {
-            Text(
-                text = "Filter/Search & Manage Personnel",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp),
-                color = LightGrey,
-                fontSize = 18.sp
-            )
-
-            // Main content area with filters and results
-            Row(
+            // Bottom personnel management and filtering area
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f) // Take up most of the space, leaving room for add/edit/delete below
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
             ) {
-                // Left side - Filter options (400dp width)
-                Column(
+                // Add filtering enabled state
+                var filteringEnabled by remember { mutableStateOf(false) }
+
+                // Row 1: Add Person, Clear All (conditional), Filter type selectors
+                Row(
                     modifier = Modifier
-                        .width(400.dp)
-                        .padding(end = 8.dp)
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Master Reset Button (only show if any filter is active)
-                    if (filter1 != null || filter2 != null || filter3 != null || filter4 != null || filter5 != null) {
+                    // Add Person Button
+                    OutlinedButton(
+                        onClick = { showAddPersonDialog = true },
+                        modifier = Modifier.width(130.dp).height(48.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.5f),
+                            contentColor = Forest.copy(alpha = 0.8f)
+                        ),
+                        border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f)),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("Add Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+
+                    // Clear All Filters (only show if any filter is active)
+                    if (currentFilterState.filter1 != null || currentFilterState.filter2 != null ||
+                        currentFilterState.filter3 != null || currentFilterState.filter4 != null ||
+                        currentFilterState.filter5 != null
+                    ) {
                         OutlinedButton(
                             onClick = {
-                                filter1 = null
-                                filter2 = null
-                                filter3 = null
-                                filter4 = null
-                                filter5 = null
+                                currentFilterState = FilterState()
+                                filteringEnabled = false
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.width(130.dp).height(48.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = Color.Red.copy(alpha = 0.1f),
                                 contentColor = Color.Red
                             ),
-                            border = BorderStroke(2.dp, Color.Red)
+                            border = BorderStroke(2.dp, Color.Red),
+                            contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("Clear All Filters", fontWeight = FontWeight.Bold)
+                            Text("Clear All", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                    } else {
+                        Spacer(modifier = Modifier.width(130.dp))
                     }
 
-                    // First filter (always show)
-                    FilterDropdown(
-                        label = "Select filter options:",
-                        currentFilter = filter1,
-                        onFilterSelected = { filter1 = it },
-                        onFilterCleared = { filter1 = null },
-                        allQualifications = allQualifications,
-                        allRanks = allRanks,
-                        allSections = allSections,
-                        allStatuses = allStatuses,
-                        shopList = shopList
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Additional filters (show if previous filter is selected)
-                    if (filter1 != null) {
-                        FilterDropdown(
-                            label = "Add filter:",
-                            currentFilter = filter2,
-                            onFilterSelected = { filter2 = it },
-                            onFilterCleared = { filter2 = null },
-                            allQualifications = allQualifications,
-                            allRanks = allRanks,
-                            allSections = allSections,
-                            allStatuses = allStatuses,
-                            shopList = shopList
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    if (filter2 != null) {
-                        FilterDropdown(
-                            label = "Add filter:",
-                            currentFilter = filter3,
-                            onFilterSelected = { filter3 = it },
-                            onFilterCleared = { filter3 = null },
-                            allQualifications = allQualifications,
-                            allRanks = allRanks,
-                            allSections = allSections,
-                            allStatuses = allStatuses,
-                            shopList = shopList
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    if (filter3 != null) {
-                        FilterDropdown(
-                            label = "Add filter:",
-                            currentFilter = filter4,
-                            onFilterSelected = { filter4 = it },
-                            onFilterCleared = { filter4 = null },
-                            allQualifications = allQualifications,
-                            allRanks = allRanks,
-                            allSections = allSections,
-                            allStatuses = allStatuses,
-                            shopList = shopList
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    if (filter4 != null) {
-                        FilterDropdown(
-                            label = "Add filter:",
-                            currentFilter = filter5,
-                            onFilterSelected = { filter5 = it },
-                            onFilterCleared = { filter5 = null },
-                            allQualifications = allQualifications,
-                            allRanks = allRanks,
-                            allSections = allSections,
-                            allStatuses = allStatuses,
-                            shopList = shopList
-                        )
-                    }
-                }
-
-                // Right side - Results columns
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Display up to 5 columns of results
-                    resultColumns.forEachIndexed { columnIndex, columnPeople ->
-                        Column(
-                            modifier = Modifier.width(380.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                    // Encapsulated Filter Type Selectors with their own spacing
+                    if (filteringEnabled) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(50.dp), // Adjust this value for filter alignment
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                                                        columnPeople.forEach { person ->
-                                ReadOnlyPersonPillWithPopup(person, shopList)
+                            // Filter 1 Type Selector (always show when filtering enabled)
+                            FilterTypeSelector(
+                                currentFilter = currentFilterState.filter1?.first,
+                                onFilterSelected = { type ->
+                                    currentFilterState = currentFilterState.copy(
+                                        filter1 = if (type != null) Pair(type, "") else null
+                                    )
+                                },
+                                modifier = Modifier.width(120.dp)
+                            )
+
+                            // Filter 2 Type Selector (only if filter1 has a VALUE)
+                            if (currentFilterState.filter1?.second?.isNotEmpty() == true) {
+                                FilterTypeSelector(
+                                    currentFilter = currentFilterState.filter2?.first,
+                                    onFilterSelected = { type ->
+                                        currentFilterState = currentFilterState.copy(
+                                            filter2 = if (type != null) Pair(type, "") else null
+                                        )
+                                    },
+                                    modifier = Modifier.width(120.dp)
+                                )
+                            }
+
+                            // Filter 3 Type Selector (only if filter2 has a VALUE)
+                            if (currentFilterState.filter2?.second?.isNotEmpty() == true) {
+                                FilterTypeSelector(
+                                    currentFilter = currentFilterState.filter3?.first,
+                                    onFilterSelected = { type ->
+                                        currentFilterState = currentFilterState.copy(
+                                            filter3 = if (type != null) Pair(type, "") else null
+                                        )
+                                    },
+                                    modifier = Modifier.width(120.dp)
+                                )
+                            }
+
+                            // Filter 4 Type Selector (only if filter3 has a VALUE) - THIS WAS THE BUG
+                            if (currentFilterState.filter3?.second?.isNotEmpty() == true) {
+                                FilterTypeSelector(
+                                    currentFilter = currentFilterState.filter4?.first,
+                                    onFilterSelected = { type ->
+                                        currentFilterState = currentFilterState.copy(
+                                            filter4 = if (type != null) Pair(type, "") else null
+                                        )
+                                    },
+                                    modifier = Modifier.width(120.dp)
+                                )
+                            }
+
+                            // Filter 5 Type Selector (only if filter4 has a VALUE) - THIS WAS THE BUG
+                            if (currentFilterState.filter4?.second?.isNotEmpty() == true) {
+                                FilterTypeSelector(
+                                    currentFilter = currentFilterState.filter5?.first,
+                                    onFilterSelected = { type ->
+                                        currentFilterState = currentFilterState.copy(
+                                            filter5 = if (type != null) Pair(type, "") else null
+                                        )
+                                    },
+                                    modifier = Modifier.width(120.dp)
+                                )
                             }
                         }
                     }
                 }
-            }
 
-            // Bottom area - Add/Edit/Delete functions
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Add Person Button
-                var showAddPersonDialog by remember { mutableStateOf(false) }
-                var showPersonSelectorDialog by remember { mutableStateOf(false) }
-                var selectedPersonToEdit by remember { mutableStateOf<Person?>(null) }
+                Spacer(modifier = Modifier.height(4.dp))
 
-                OutlinedButton(
-                    onClick = { showAddPersonDialog = true },
-                    modifier = Modifier.width(140.dp).height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.LightGray.copy(alpha = 0.5f),
-                        contentColor = Forest.copy(alpha = 0.8f)
-                    ),
-                    border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f))
+                // Row 2: Edit Person, Filter Personnel button, Filter values with clear buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Add Person", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-
-                // Edit Person Button
-                OutlinedButton(
-                    onClick = { showPersonSelectorDialog = true },
-                    modifier = Modifier.width(140.dp).height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.LightGray.copy(alpha = 0.5f),
-                        contentColor = DarkBlue.copy(alpha = 0.8f)
-                    ),
-                    border = BorderStroke(2.dp, DarkBlue.copy(alpha = 0.8f))
-                ) {
-                    Text("Edit Person", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-
-                // Person Selector Dialog
-                if (showPersonSelectorDialog) {
-                    PersonSelectorDialog(
-                        people = people,
-                        shopList = shopList,
-                        onPersonSelected = { person ->
-                            selectedPersonToEdit = person
-                            showPersonSelectorDialog = false
-                        },
-                        onDismiss = { showPersonSelectorDialog = false }
-                    )
-                }
-
-                // Edit Person Dialog
-                selectedPersonToEdit?.let { person ->
-                    EditPersonDialog(
-                        person = person,
-                        shopList = shopList,
-                        allQualifications = allQualifications,
-                        allRanks = allRanks,
-                        allSections = allSections,
-                        onDismiss = { selectedPersonToEdit = null },
-                        onSave = { updatedPerson ->
-                            personViewModel.updatePerson(updatedPerson)
-                            selectedPersonToEdit = null
-                        },
-                        onSaveAndEditAnother = { updatedPerson ->
-                            personViewModel.updatePerson(updatedPerson)
-                            // Keep dialog open but switch to selector
-                            selectedPersonToEdit = null
-                            showPersonSelectorDialog = true
-                        },
-                        onDelete = { personToDelete ->
-                            personViewModel.deletePerson(personToDelete)
-                            selectedPersonToEdit = null
-                        }
-                    )
-                }
-
-                // Add Person Dialog
-                if (showAddPersonDialog) {
-                    AddPersonDialog(
-                        shopList = shopList,
-                        allQualifications = allQualifications,
-                        allRanks = allRanks,
-                        allSections = allSections,
-                        onDismiss = { showAddPersonDialog = false },
-                        onSave = { newPerson ->
-                            personViewModel.insertPerson(newPerson)
-                            showAddPersonDialog = false
-                        },
-                        onSaveAndContinue = { newPerson ->
-                            personViewModel.insertPerson(newPerson)
-                            // Don't close dialog - let it stay open for next entry
-                        }
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun FilterDropdown(
-        label: String,
-        currentFilter: Pair<String, String>?,
-        onFilterSelected: (Pair<String, String>) -> Unit,
-        onFilterCleared: () -> Unit,
-        allQualifications: List<String>,
-        allRanks: List<String>,
-        allSections: List<String>,
-        allStatuses: List<String>,
-        shopList: List<Shop>
-    ) {
-        var showTypeMenu by remember { mutableStateOf(false) }
-        var showValueMenu by remember { mutableStateOf(false) }
-        var selectedType by remember { mutableStateOf<String?>(null) }
-
-        // Update selectedType when currentFilter changes
-        LaunchedEffect(currentFilter) {
-            selectedType = currentFilter?.first
-        }
-
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-
-            // Filter type, value, and clear buttons in the same row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Filter type selection
-                Box(modifier = Modifier.weight(2f)) {
+                    // Edit Person Button
                     OutlinedButton(
-                        onClick = { showTypeMenu = true },
-                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        onClick = { showPersonSelectorDialog = true },
+                        modifier = Modifier.width(130.dp).height(48.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black
+                            containerColor = Color.LightGray.copy(alpha = 0.5f),
+                            contentColor = DarkBlue.copy(alpha = 0.8f)
                         ),
-                        border = BorderStroke(1.dp, Color.Gray)
+                        border = BorderStroke(2.dp, DarkBlue.copy(alpha = 0.8f)),
+                        contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(
-                            text = currentFilter?.first ?: "Add Filter",
-                            fontSize = 18.sp
-                        )
+                        Text("Edit Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
 
-                    DropdownMenu(
-                        expanded = showTypeMenu,
-                        onDismissRequest = { showTypeMenu = false }
-                    ) {
-                        listOf("Qualification", "Rank", "Section", "Status", "Shop").forEach { type ->
-                            DropdownMenuItem(
-                                onClick = {
-                                    selectedType = type
-                                    showTypeMenu = false
-                                    // Clear current filter if type changes
-                                    if (currentFilter?.first != type) {
-                                        onFilterCleared()
-                                    }
-                                },
-                                text = { Text(type, fontSize = 18.sp) }
-                            )
-                        }
-                    }
-                }
-
-                // Filter value selection
-                Box(modifier = Modifier.weight(2f)) {
+                    // Filter Personnel Button (replaces the text label)
                     OutlinedButton(
                         onClick = {
-                            if (selectedType != null) {
-                                showValueMenu = true
+                            filteringEnabled = !filteringEnabled
+                            if (!filteringEnabled) {
+                                // If disabling, clear all filters
+                                currentFilterState = FilterState()
                             }
                         },
-                        enabled = selectedType != null,
-                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        modifier = Modifier.width(130.dp).height(48.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (selectedType != null) Color.White else Color.Gray.copy(alpha = 0.3f),
-                            contentColor = if (selectedType != null) Color.Black else Color.Gray
+                            containerColor = if (filteringEnabled) Orange.copy(alpha = 0.3f) else Color.LightGray.copy(
+                                alpha = 0.5f
+                            ),
+                            contentColor = Orange.copy(alpha = 0.8f)
                         ),
-                        border = BorderStroke(1.dp, if (selectedType != null) Color.Gray else Color.LightGray)
+                        border = BorderStroke(2.dp, Orange.copy(alpha = 0.8f)),
+                        contentPadding = PaddingValues(0.dp)
                     ) {
                         Text(
-                            text = currentFilter?.second ?: "Select Value",
-                            fontSize = 18.sp
+                            text = if (filteringEnabled) "Filtering ON" else "\uD83D\uDD0D Filter",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
 
-                    DropdownMenu(
-                        expanded = showValueMenu,
-                        onDismissRequest = { showValueMenu = false }
-                    ) {
-                        val options = when (selectedType) {
-                            "Qualification" -> allQualifications
-                            "Rank" -> allRanks
-                            "Section" -> allSections
-                            "Status" -> allStatuses
-                            "Shop" -> shopList.map { it.name }
-                            else -> emptyList()
+                    // Filter Value Selectors (only show if filtering enabled and type selected)
+                    if (filteringEnabled) {
+                        // Filter 1 Value + Clear
+                        if (currentFilterState.filter1?.first != null) {
+                            Row(
+                                modifier = Modifier.width(154.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                // Value selector button
+                                var showValueMenu1 by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.weight(0.8f)) {
+                                    OutlinedButton(
+                                        onClick = { showValueMenu1 = true },
+                                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        ),
+                                        border = BorderStroke(1.dp, Color.Gray),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(
+                                            text = if (currentFilterState.filter1!!.second.isNotEmpty())
+                                                currentFilterState.filter1!!.second else "Select Value",
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = showValueMenu1,
+                                        onDismissRequest = { showValueMenu1 = false }
+                                    ) {
+                                        val options = when (currentFilterState.filter1!!.first) {
+                                            "Qualification" -> allQualifications
+                                            "Rank" -> allRanks
+                                            "Section" -> allSections
+                                            "Status" -> listOf(
+                                                "Normal",
+                                                "LV",
+                                                "SLD",
+                                                "TDY",
+                                                "Deployed"
+                                            )
+
+                                            "Shop" -> shopList.map { it.name }
+                                            else -> emptyList()
+                                        }
+
+                                        options.forEach { option ->
+                                            DropdownMenuItem(
+                                                onClick = {
+                                                    currentFilterState = currentFilterState.copy(
+                                                        filter1 = currentFilterState.filter1!!.copy(
+                                                            second = option
+                                                        )
+                                                    )
+                                                    showValueMenu1 = false
+                                                },
+                                                text = { Text(option, fontSize = 14.sp) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Clear button
+                                OutlinedButton(
+                                    onClick = {
+                                        // Shift all filters to the left when clearing filter 1
+                                        currentFilterState = currentFilterState.copy(
+                                            filter1 = currentFilterState.filter2,
+                                            filter2 = currentFilterState.filter3,
+                                            filter3 = currentFilterState.filter4,
+                                            filter4 = currentFilterState.filter5,
+                                            filter5 = null
+                                        )
+                                    },
+                                    modifier = Modifier.weight(0.2f).height(32.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Red.copy(alpha = 0.1f),
+                                        contentColor = Color.Red
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Red),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
 
-                        options.forEach { option ->
-                            DropdownMenuItem(
-                                onClick = {
-                                    onFilterSelected(Pair(selectedType!!, option))
-                                    showValueMenu = false
-                                },
-                                text = { Text(option, fontSize = 18.sp) }
-                            )
+                        // Filter 2 Value + Clear
+                        if (currentFilterState.filter2?.first != null) {
+                            Row(
+                                modifier = Modifier.width(154.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                var showValueMenu2 by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.weight(0.8f)) {
+                                    OutlinedButton(
+                                        onClick = { showValueMenu2 = true },
+                                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        ),
+                                        border = BorderStroke(1.dp, Color.Gray),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(
+                                            text = if (currentFilterState.filter2!!.second.isNotEmpty())
+                                                currentFilterState.filter2!!.second else "Select Value",
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = showValueMenu2,
+                                        onDismissRequest = { showValueMenu2 = false }
+                                    ) {
+                                        val options = when (currentFilterState.filter2!!.first) {
+                                            "Qualification" -> allQualifications
+                                            "Rank" -> allRanks
+                                            "Section" -> allSections
+                                            "Status" -> listOf(
+                                                "Normal",
+                                                "LV",
+                                                "SLD",
+                                                "TDY",
+                                                "Deployed"
+                                            )
+
+                                            "Shop" -> shopList.map { it.name }
+                                            else -> emptyList()
+                                        }
+
+                                        options.forEach { option ->
+                                            DropdownMenuItem(
+                                                onClick = {
+                                                    currentFilterState = currentFilterState.copy(
+                                                        filter2 = currentFilterState.filter2!!.copy(
+                                                            second = option
+                                                        )
+                                                    )
+                                                    showValueMenu2 = false
+                                                },
+                                                text = { Text(option, fontSize = 14.sp) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        // Shift filters 3-5 to the left when clearing filter 2
+                                        currentFilterState = currentFilterState.copy(
+                                            filter2 = currentFilterState.filter3,
+                                            filter3 = currentFilterState.filter4,
+                                            filter4 = currentFilterState.filter5,
+                                            filter5 = null
+                                        )
+                                    },
+                                    modifier = Modifier.weight(0.2f).height(32.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Red.copy(alpha = 0.1f),
+                                        contentColor = Color.Red
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Red),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // Filter 3 Value + Clear
+                        if (currentFilterState.filter3?.first != null) {
+                            Row(
+                                modifier = Modifier.width(154.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                var showValueMenu3 by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.weight(0.8f)) {
+                                    OutlinedButton(
+                                        onClick = { showValueMenu3 = true },
+                                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        ),
+                                        border = BorderStroke(1.dp, Color.Gray),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(
+                                            text = if (currentFilterState.filter3!!.second.isNotEmpty())
+                                                currentFilterState.filter3!!.second else "Select Value",
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = showValueMenu3,
+                                        onDismissRequest = { showValueMenu3 = false }
+                                    ) {
+                                        val options = when (currentFilterState.filter3!!.first) {
+                                            "Qualification" -> allQualifications
+                                            "Rank" -> allRanks
+                                            "Section" -> allSections
+                                            "Status" -> listOf(
+                                                "Normal",
+                                                "LV",
+                                                "SLD",
+                                                "TDY",
+                                                "Deployed"
+                                            )
+
+                                            "Shop" -> shopList.map { it.name }
+                                            else -> emptyList()
+                                        }
+
+                                        options.forEach { option ->
+                                            DropdownMenuItem(
+                                                onClick = {
+                                                    currentFilterState = currentFilterState.copy(
+                                                        filter3 = currentFilterState.filter3!!.copy(
+                                                            second = option
+                                                        )
+                                                    )
+                                                    showValueMenu3 = false
+                                                },
+                                                text = { Text(option, fontSize = 14.sp) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        // Shift filters 4-5 to the left when clearing filter 3
+                                        currentFilterState = currentFilterState.copy(
+                                            filter3 = currentFilterState.filter4,
+                                            filter4 = currentFilterState.filter5,
+                                            filter5 = null
+                                        )
+                                    },
+                                    modifier = Modifier.weight(0.2f).height(32.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Red.copy(alpha = 0.1f),
+                                        contentColor = Color.Red
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Red),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // Filter 4 Value + Clear
+                        if (currentFilterState.filter4?.first != null) {
+                            Row(
+                                modifier = Modifier.width(154.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                var showValueMenu4 by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.weight(0.8f)) {
+                                    OutlinedButton(
+                                        onClick = { showValueMenu4 = true },
+                                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        ),
+                                        border = BorderStroke(1.dp, Color.Gray),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(
+                                            text = if (currentFilterState.filter4!!.second.isNotEmpty())
+                                                currentFilterState.filter4!!.second else "Select Value",
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = showValueMenu4,
+                                        onDismissRequest = { showValueMenu4 = false }
+                                    ) {
+                                        val options = when (currentFilterState.filter4!!.first) {
+                                            "Qualification" -> allQualifications
+                                            "Rank" -> allRanks
+                                            "Section" -> allSections
+                                            "Status" -> listOf(
+                                                "Normal",
+                                                "LV",
+                                                "SLD",
+                                                "TDY",
+                                                "Deployed"
+                                            )
+
+                                            "Shop" -> shopList.map { it.name }
+                                            else -> emptyList()
+                                        }
+
+                                        options.forEach { option ->
+                                            DropdownMenuItem(
+                                                onClick = {
+                                                    currentFilterState = currentFilterState.copy(
+                                                        filter4 = currentFilterState.filter4!!.copy(
+                                                            second = option
+                                                        )
+                                                    )
+                                                    showValueMenu4 = false
+                                                },
+                                                text = { Text(option, fontSize = 14.sp) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        // Shift filter 5 to the left when clearing filter 4
+                                        currentFilterState = currentFilterState.copy(
+                                            filter4 = currentFilterState.filter5,
+                                            filter5 = null
+                                        )
+                                    },
+                                    modifier = Modifier.weight(0.2f).height(32.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Red.copy(alpha = 0.1f),
+                                        contentColor = Color.Red
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Red),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // Filter 5 Value + Clear
+                        if (currentFilterState.filter5?.first != null) {
+                            Row(
+                                modifier = Modifier.width(154.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                var showValueMenu5 by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.weight(0.8f)) {
+                                    OutlinedButton(
+                                        onClick = { showValueMenu5 = true },
+                                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black
+                                        ),
+                                        border = BorderStroke(1.dp, Color.Gray),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(
+                                            text = if (currentFilterState.filter5!!.second.isNotEmpty())
+                                                currentFilterState.filter5!!.second else "Select Value",
+                                            fontSize = 14.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = showValueMenu5,
+                                        onDismissRequest = { showValueMenu5 = false }
+                                    ) {
+                                        val options = when (currentFilterState.filter5!!.first) {
+                                            "Qualification" -> allQualifications
+                                            "Rank" -> allRanks
+                                            "Section" -> allSections
+                                            "Status" -> listOf(
+                                                "Normal",
+                                                "LV",
+                                                "SLD",
+                                                "TDY",
+                                                "Deployed"
+                                            )
+
+                                            "Shop" -> shopList.map { it.name }
+                                            else -> emptyList()
+                                        }
+
+                                        options.forEach { option ->
+                                            DropdownMenuItem(
+                                                onClick = {
+                                                    currentFilterState = currentFilterState.copy(
+                                                        filter5 = currentFilterState.filter5!!.copy(
+                                                            second = option
+                                                        )
+                                                    )
+                                                    showValueMenu5 = false
+                                                },
+                                                text = { Text(option, fontSize = 14.sp) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        currentFilterState = currentFilterState.copy(filter5 = null)
+                                    },
+                                    modifier = Modifier.weight(0.2f).height(32.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Red.copy(alpha = 0.1f),
+                                        contentColor = Color.Red
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Red),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("✕", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
-                }
-
-                // Clear individual filter button (X button) - always present
-                OutlinedButton(
-                    onClick = {
-                        if (currentFilter != null) {
-                            onFilterCleared()
-                            selectedType = null
-                        }
-                    },
-                    enabled = currentFilter != null,
-                    modifier = Modifier.size(40.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (currentFilter != null) Color.Red.copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.3f),
-                        contentColor = if (currentFilter != null) Color.Red else Color.Gray
-                    ),
-                    border = BorderStroke(1.dp, if (currentFilter != null) Color.Red else Color.LightGray),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("X", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
-        }
-    }
 
-    @Composable
-    fun ReadOnlyPersonPillWithPopup(person: Person, shopList: List<Shop>) {
-        var expanded by remember { mutableStateOf(false) }
-        val shopName = getShopNameById(person.shopId, shopList)
-
-
-        Box {
-            PersonPill(
-                person = person,
-                onClick = { expanded = true }
-            )
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                offset = androidx.compose.ui.unit.DpOffset(0.dp, 0.dp)
-            ) {
-                Card(
-                    modifier = Modifier.width(380.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(8.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Name: ${person.rank} ${person.lastName}")
-                        Text("Phone: ${person.phoneNumber}")
-                        Text("Shop: $shopName")
-                        Text("Section: ${person.dutySection}")
-                        Text("Qualifications: ${person.qualifications}")
+            // Dialog handlers - Add Person
+            if (showAddPersonDialog) {
+                AddPersonDialog(
+                    shopList = shopList,
+                    allQualifications = allQualifications,
+                    allRanks = allRanks,
+                    allSections = allSections,
+                    onDismiss = { showAddPersonDialog = false },
+                    onSave = { newPerson ->
+                        personViewModel.insertPerson(newPerson)
+                        showAddPersonDialog = false
+                    },
+                    onSaveAndContinue = { newPerson ->
+                        personViewModel.insertPerson(newPerson)
+                        // Keep dialog open for next entry
                     }
-                }
+                )
+            }
+
+            // Dialog handlers - Person Selector
+            if (showPersonSelectorDialog) {
+                PersonSelectorDialog(
+                    people = people,
+                    shopList = shopList,
+                    onPersonSelected = { person ->
+                        selectedPersonToEdit = person
+                        showPersonSelectorDialog = false
+                    },
+                    onDismiss = { showPersonSelectorDialog = false }
+                )
+            }
+
+            // Dialog handlers - Edit Person
+            selectedPersonToEdit?.let { person ->
+                EditPersonDialog(
+                    person = person,
+                    shopList = shopList,
+                    allQualifications = allQualifications,
+                    allRanks = allRanks,
+                    allSections = allSections,
+                    onDismiss = { selectedPersonToEdit = null },
+                    onSave = { updatedPerson ->
+                        personViewModel.updatePerson(updatedPerson)
+                        selectedPersonToEdit = null
+                    },
+                    onSaveAndEditAnother = { updatedPerson ->
+                        personViewModel.updatePerson(updatedPerson)
+                        // Keep dialog open but switch to selector
+                        selectedPersonToEdit = null
+                        showPersonSelectorDialog = true
+                    },
+                    onDelete = { personToDelete ->
+                        personViewModel.deletePerson(personToDelete)
+                        selectedPersonToEdit = null
+                    }
+                )
             }
         }
     }
@@ -1433,255 +1480,7 @@ fun PlaceholderQuadrant(label: String) {
         }
     }
 
-    @Composable
-    fun StatusTrackerQuadrant(
-        people: List<Person>,
-        shopList: List<Shop>
-    ) {
-        var showReport by remember { mutableStateOf(false) }
-        var reportGeneratedAt by remember { mutableStateOf<String?>(null) }
-        var reportPeople by remember { mutableStateOf<List<Person>>(emptyList()) }
 
-        // Generate report data and timestamp when button is clicked
-        fun generateReport() {
-            // Capture current people data
-            reportPeople = people.toList()
-
-            // Generate timestamp
-            val currentTime = System.currentTimeMillis()
-            val formatter = java.text.SimpleDateFormat("MMMM dd, yyyy 'at' h:mm a", java.util.Locale.US)
-            reportGeneratedAt = "Report generated on ${formatter.format(java.util.Date(currentTime))}"
-
-            showReport = true
-        }
-
-        // Filter people by status from captured report data
-        val lvPeople = remember(reportPeople) {
-            reportPeople.filter { it.status.contains("LV") }
-        }
-        val tdyPeople = remember(reportPeople) {
-            reportPeople.filter { it.status.contains("TDY") }
-        }
-        val sldPeople = remember(reportPeople) {
-            reportPeople.filter { it.status.contains("SLD") }
-        }
-        val deployedPeople = remember(reportPeople) {
-            reportPeople.filter { it.status.contains("Deployed") }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Personnel Status Report",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = LightGrey
-                )
-
-                OutlinedButton(
-                    onClick = {
-                        if (showReport) {
-                            showReport = false
-                            reportGeneratedAt = null
-                            reportPeople = emptyList()
-                        } else {
-                            generateReport()
-                        }
-                    },
-                    modifier = Modifier.height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.LightGray.copy(alpha = 0.5f),
-                        contentColor = Forest.copy(alpha = 0.8f)
-                    ),
-                    border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f))
-                ) {
-                    Text(
-                        text = if (showReport) "Hide Report" else "Generate Absence Report",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (showReport) {
-                // Report timestamp header
-                reportGeneratedAt?.let { timestamp ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
-                        border = BorderStroke(1.dp, Border)
-                    ) {
-                        Text(
-                            text = timestamp,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = LightGrey,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-
-                // Status columns
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(150.dp)
-                ) {
-                    // LV Column
-                    StatusColumn(
-                        title = "Leave",
-                        people = lvPeople,
-                        backgroundColor = Color(0xFFCCCCFF),
-                        borderColor = Color(0xFFAFAFFF),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // TDY Column
-                    StatusColumn(
-                        title = "TDY",
-                        people = tdyPeople,
-                        backgroundColor = Color(0xFFCCCCFF),
-                        borderColor = Color(0xFFAFAFFF),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // SLD Column
-                    StatusColumn(
-                        title = "SLD",
-                        people = sldPeople,
-                        backgroundColor = Color(0xFFFFE699),
-                        borderColor = Color(0xFFFFD44B),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // Deployed Column
-                    StatusColumn(
-                        title = "Deployed",
-                        people = deployedPeople,
-                        backgroundColor = Color(0xFF6699FF),
-                        borderColor = Color(0xFF377AFF),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            } else {
-                // Summary when report is hidden - show current live data
-                val currentLvPeople = people.filter { it.status.contains("LV") }
-                val currentTdyPeople = people.filter { it.status.contains("TDY") }
-                val currentSldPeople = people.filter { it.status.contains("SLD") }
-                val currentDeployedPeople = people.filter { it.status.contains("Deployed") }
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
-                    border = BorderStroke(2.dp, Border)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Personnel Status Summary",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LightGrey
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            StatusSummaryItem("LV", currentLvPeople.size, Color(0xFFAFAFFF))
-                            StatusSummaryItem("TDY", currentTdyPeople.size, Color(0xFFAFAFFF))
-                            StatusSummaryItem("SLD", currentSldPeople.size, Color(0xFFFFD44B))
-                            StatusSummaryItem("Deployed", currentDeployedPeople.size, Color(0xFF377AFF))
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "Click 'Generate Absence Report' to capture current status data with timestamp",
-                            fontSize = 16.sp,
-                            color = Color.Gray,
-                            fontStyle = FontStyle.Italic
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun StatusColumn(
-        title: String,
-        people: List<Person>,
-        backgroundColor: Color,
-        borderColor: Color,
-        modifier: Modifier = Modifier
-    ) {
-        Card(
-            modifier = modifier
-                .fillMaxHeight()
-                .padding(4.dp),
-            colors = CardDefaults.cardColors(containerColor = backgroundColor.copy(alpha = 0.8f)),
-            border = BorderStroke(2.dp, borderColor),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Column Header
-                Text(
-                    text = "$title (${people.size})",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Charcoal,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                )
-
-                Divider(
-                    color = borderColor,
-                    thickness = 2.dp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                // People list
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    items(people) { person ->
-                        StatusPersonPill(
-                            person = person
-                        )
-                    }
-                }
-            }
-        }
-    }
 
     @Composable
     fun StatusPersonPill(

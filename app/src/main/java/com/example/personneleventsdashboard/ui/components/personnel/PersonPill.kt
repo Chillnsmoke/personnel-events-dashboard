@@ -55,7 +55,8 @@ fun colorForRank(rank: String): Color = when (rank) {
 @Composable
 fun PersonPill(
     person: Person,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isFiltered: Boolean = true // New parameter: true = matches filter, false = doesn't match
 ) {
     // Determine if person has any status
     val hasStatus = person.status.contains("LV") ||
@@ -73,6 +74,7 @@ fun PersonPill(
     }
 
     val isChief = person.rank.startsWith("AMTC") || person.rank.startsWith("AETC")
+
     val pillTextStyle = if (isChief) {
         MaterialTheme.typography.titleLarge.copy(
             color = E4,
@@ -82,7 +84,6 @@ fun PersonPill(
     } else {
         MaterialTheme.typography.titleLarge.copy(
             color = textColor,
-            fontWeight = FontWeight.Bold,
             fontSize = 26.sp
         )
     }
@@ -95,8 +96,21 @@ fun PersonPill(
             .padding(vertical = 4.dp, horizontal = 6.dp)
             .height(40.dp)
             .clickable { onClick() }
-            .blur(if (hasStatus) 1.5.dp else 0.dp) // Add blur for status
-            .alpha(if (hasStatus) 0.7f else 1.0f),
+            // Apply filtering effects
+            .blur(
+                when {
+                    !isFiltered -> 2.dp // Heavy blur for non-matching
+                    hasStatus -> 1.5.dp // Existing status blur
+                    else -> 0.dp // No blur for normal matching
+                }
+            )
+            .alpha(
+                when {
+                    !isFiltered -> 0.3f // Heavy fade for non-matching
+                    hasStatus -> 0.7f // Existing status alpha
+                    else -> 1.0f // Full opacity for normal matching
+                }
+            ),
         border = borderColor?.let { BorderStroke(3.dp, it) }
     ) {
         Box(

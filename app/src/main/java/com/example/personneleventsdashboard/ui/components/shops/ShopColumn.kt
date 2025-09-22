@@ -32,12 +32,14 @@ import com.example.personneleventsdashboard.ui.theme.E7
 import com.example.personneleventsdashboard.ui.theme.ShopBorderGradient
 import com.example.personneleventsdashboard.ui.theme.ShopHeaderGradient
 
+
 @Composable
 fun ShopColumn(
     shop: Shop,
     people: List<Person>,
     shopList: List<Shop>,
     personViewModel: PersonViewModel,
+    filteredPeople: List<Person> = people,
     modifier: Modifier = Modifier
 ) {
     // Sorting as specified:
@@ -89,14 +91,15 @@ fun ShopColumn(
             }
         }
 
-        // List of people as pills
+        // List of people as pills with filter feedback
         sortedPeople.forEach { person ->
             PersonPillWithMenu(
                 person = person,
                 shopList = shopList,
+                isFiltered = filteredPeople.contains(person), // Pass filter status
                 onSave = { updatedPerson ->
-                    // Save to DB (use your ViewModel updatePerson method)
-                    personViewModel.updatePerson(updatedPerson) }
+                    personViewModel.updatePerson(updatedPerson)
+                }
             )
         }
     }

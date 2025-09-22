@@ -16,18 +16,20 @@ import com.example.personneleventsdashboard.model.Shop
 fun PersonPillWithMenu(
     person: Person,
     shopList: List<Shop>,
+    isFiltered: Boolean = true, // New parameter
     onSave: (Person) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         PersonPill(
             person = person,
+            isFiltered = isFiltered, // Pass through filter status
             onClick = { expanded = true }
         )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            offset = androidx.compose.ui.unit.DpOffset(0.dp, 0.dp), // pops directly below pill
+            offset = androidx.compose.ui.unit.DpOffset(0.dp, 0.dp),
         ) {
             PersonDetailsMenuContent(
                 person = person,
