@@ -11,7 +11,7 @@ import com.example.personneleventsdashboard.model.TailNumber  // ADD THIS IMPORT
 
 @Database(
     entities = [Person::class, Shop::class, Event::class, EventType::class, TailNumber::class],
-    version = 9, // INCREMENT from 6 to 7
+    version = 12, // INCREMENT
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)

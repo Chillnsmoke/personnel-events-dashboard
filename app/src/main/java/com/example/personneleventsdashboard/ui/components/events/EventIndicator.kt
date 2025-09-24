@@ -93,17 +93,6 @@ fun EventIndicator(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Complete status - green checkmark prefix
-                if (event.status == "Complete") {
-                    Text(
-                        text = "✓",
-                        fontSize = 32.sp,
-                        color = Color.Green,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(end = 2.dp)
-                    )
-                }
-
                 // Event title with status styling
                 Text(
                     text = event.title,
@@ -115,6 +104,16 @@ fun EventIndicator(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false) // Don't force fill
                 )
+                // Complete status - green checkmark prefix
+                if (event.status == "Complete") {
+                    Text(
+                        text = " ✓",
+                        fontSize = 32.sp,
+                        color = Color.Green,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 2.dp)
+                    )
+                }
 
                 // In Progress status - orange dots (immediately after title)
                 if (event.status == "In Progress") {

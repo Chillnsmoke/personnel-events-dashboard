@@ -364,29 +364,27 @@ fun BoxScope.MultiDayEventSpan(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Complete status indicator
-                    if (event.status == "Complete") {
-                        Text(
-                            text = "✓",
-                            fontSize = 32.sp,
-                            color = Color.Green,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(end = 2.dp)
-                        )
-                    }
-
                     // Event title
                     Text(
                         text = event.title,
                         fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Medium,
                         color = titleColor,
                         textDecoration = titleDecoration,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center
                     )
-
+                    // Complete status indicator
+                    if (event.status == "Complete") {
+                        Text(
+                            text = " ✓",
+                            fontSize = 32.sp,
+                            color = Color.Green,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(end = 2.dp)
+                        )
+                    }
                     // In Progress status indicator
                     if (event.status == "In Progress") {
                         Text(
@@ -400,10 +398,10 @@ fun BoxScope.MultiDayEventSpan(
 
                     // Aircraft tail number
                     event.aircraftTailNumber?.let { tailNumber ->
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(20.dp))
                         Text(
                             text = tailNumber,
-                            fontSize = 28.sp,
+                            fontSize = 32.sp,
                             color = Color.DarkGray,
                             fontWeight = FontWeight.Bold
                         )

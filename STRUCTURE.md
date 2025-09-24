@@ -47,13 +47,19 @@
 │   │   │   │   │   │   │   │   │   │   ├── CalendarComponents.kt
 │   │   │   │   │   │   │   │   │   │   ├── EventHelpers.kt
 │   │   │   │   │   │   │   │   │   │   └── EventIndicator.kt
-│   │   │   │   │   │   │   │   │   └── personnel/
+│   │   │   │   │   │   │   │   │   ├── personnel/
 │   │   │   │   │   │   │   │   │   │   ├── AddPersonDialog.kt
 │   │   │   │   │   │   │   │   │   │   ├── EditPersonDialog.kt
+│   │   │   │   │   │   │   │   │   │   ├── FilterTypeSelector.kt
+│   │   │   │   │   │   │   │   │   │   ├── FilterUtils.kt
+│   │   │   │   │   │   │   │   │   │   ├── FilterValueSelector.kt
 │   │   │   │   │   │   │   │   │   │   ├── PersonDetailsMenuContent.kt
 │   │   │   │   │   │   │   │   │   │   ├── PersonPill.kt
 │   │   │   │   │   │   │   │   │   │   ├── PersonPillWithMenu.kt
 │   │   │   │   │   │   │   │   │   │   └── PersonSelectorDialog.kt
+│   │   │   │   │   │   │   │   │   └── shops/
+│   │   │   │   │   │   │   │   │   │   ├── ShopColumn.kt
+│   │   │   │   │   │   │   │   │   │   └── ShopHelpers.kt
 │   │   │   │   │   │   │   │   └── theme/
 │   │   │   │   │   │   │   │   │   ├── Color.kt
 │   │   │   │   │   │   │   │   │   ├── Theme.kt

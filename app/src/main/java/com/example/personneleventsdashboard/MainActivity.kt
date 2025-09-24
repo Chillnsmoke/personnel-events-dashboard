@@ -90,6 +90,8 @@ import java.time.temporal.ChronoUnit
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.text.font.Font
+import com.example.personneleventsdashboard.data.management.DataSeeder
 import com.example.personneleventsdashboard.ui.components.personnel.PersonPill
 import com.example.personneleventsdashboard.ui.components.personnel.colorForRank
 import com.example.personneleventsdashboard.ui.components.personnel.PersonPillWithMenu
@@ -156,7 +158,11 @@ class MainActivity : ComponentActivity() {
             resources.displayMetrics.densityDpi = targetDensityDpi
 
             // Show what we changed it to
-            Toast.makeText(this, "Adjusted to: DPI: $targetDensityDpi | Density: $targetDensity", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                this,
+                "Adjusted to: DPI: $targetDensityDpi | Density: $targetDensity",
+                Toast.LENGTH_LONG
+            ).show()
         }
 
         setContent {
@@ -224,247 +230,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-
         }
 
         // Data seeding code here...
         lifecycleScope.launch {
             val db = AppDatabaseProvider.getDatabase(this@MainActivity)
-            val shopDao = db.shopDao()
-            val personDao = db.personDao()
-            val eventDao = db.eventDao()
-            val eventTypeDao = db.eventTypeDao()
-            val tailNumberDao = db.tailNumberDao()
-
-            if (shopDao.getAllShops().first().isEmpty() && personDao.getAllPersons().first()
-                    .isEmpty()
-            ) {
-                val shopNames = listOf(
-                    "LCPO", "Division Managers", "Engine", "Prop", "Metal", "Load Cage", "Nights",
-                    "Maintenance Control", "Avionics", "Sensor", "Tool Room", "QA", "Line Crew"
-                )
-                val shopIds = mutableListOf<Long>()
-                for (name in shopNames) {
-                    shopIds.add(shopDao.insertShop(Shop(name = name)))
-                }
-
-                val firstNames = listOf(
-                    "Alex",
-                    "Jordan",
-                    "Taylor",
-                    "Morgan",
-                    "Casey",
-                    "Sydney",
-                    "Jamie",
-                    "Avery",
-                    "Riley",
-                    "Logan",
-                    "Skyler",
-                    "Bailey",
-                    "Hayden",
-                    "Harper",
-                    "Quinn",
-                    "Sawyer",
-                    "Emerson",
-                    "Rowan",
-                    "Drew",
-                    "Reese"
-                )
-                val lastNames = listOf(
-                    "Smith",
-                    "Johnson",
-                    "Williams",
-                    "Brown",
-                    "Jones",
-                    "Garcia",
-                    "Miller",
-                    "Davis",
-                    "Rodriguez",
-                    "Martinez",
-                    "Hernandez",
-                    "Lopez",
-                    "Gonzalez",
-                    "Wilson",
-                    "Anderson",
-                    "Thomas",
-                    "Taylor",
-                    "Moore",
-                    "Jackson",
-                    "Martin"
-                )
-
-                fun randomName(i: Int) = Pair(
-                    firstNames[i % firstNames.size],
-                    lastNames[(i / firstNames.size) % lastNames.size]
-                )
-
-                fun phoneFor(i: Int) = "(907) 555-%04d".format(1000 + i)
-                fun dutySection(rank: String, shopName: String, counter: Int): String {
-                    return when {
-                        shopName == "Nights" -> "Nights"
-                        rank.startsWith("AMTC") || rank.startsWith("AETC") || rank.contains("CS") || rank == "AMTCM" || rank == "AETCM" -> "Days"
-                        else -> ((counter % 4) + 1).toString()
-                    }
-                }
-
-                var p = 0
-                val persons = mutableListOf<Person>()
-
-                fun addPerson(
-                    rank: String,
-                    shopIndex: Int,
-                    qual: String = "",
-                    status: String = "Normal"
-                ) {
-                    val name = randomName(p)
-                    val shopName = shopNames[shopIndex]
-                    val section = dutySection(rank, shopName, p)
-                    persons.add(
-                        Person(
-                            lastName = name.second,
-                            firstName = name.first,
-                            rank = rank,
-                            shopId = shopIds[shopIndex].toInt(),
-                            phoneNumber = phoneFor(p++),
-                            qualifications = qual,
-                            status = status,
-                            dutySection = section
-                        )
-                    )
-                }
-
-                // Repeat previous logic to populate personnel using addPerson()
-                addPerson("AMTCM", 0)
-                addPerson("AMTCS", 1)
-                addPerson("AETCS", 1)
-
-                (2..7).forEach { addPerson("AMTC", it) }
-                (8..12).forEach { addPerson("AETC", it) }
-
-                listOf(2, 2, 2, 2, 1, 1).forEachIndexed { idx, count ->
-                    repeat(count) { addPerson("AMT1", 2 + idx, "Load Master") }
-                }
-
-                (8..12).forEach { shop -> repeat(2) { addPerson("AET1", shop, "MSO") } }
-
-                repeat(10) { addPerson("AMT2", listOf(2, 3, 4, 5)[it % 4], "Drop Master") }
-                repeat(5) { addPerson("AMT2", listOf(2, 3, 4, 5)[it % 4], "Load Master") }
-
-                repeat(6) { addPerson("AET2", 8, "MSO") }
-                repeat(4) { addPerson("AET2", 9, "MSO") }
-                repeat(2) { addPerson("AET2", 10, "MSO") }
-                listOf(8, 9, 10).forEachIndexed { i, shop -> addPerson("AET2", shop, "MSOT") }
-
-                val amt3Shops = listOf(2, 3, 4, 5, 6, 7, 12)
-                repeat(10) { addPerson("AMT3", amt3Shops[it % amt3Shops.size], "Drop Master") }
-                repeat(5) { addPerson("AMT3", amt3Shops[(it + 2) % amt3Shops.size], "DMT") }
-
-                listOf(
-                    Pair(12, 2),
-                    Pair(10, 2),
-                    Pair(6, 4),
-                    Pair(8, 4),
-                    Pair(9, 3)
-                ).forEach { (shop, count) ->
-                    repeat(count) {
-                        val qual =
-                            if (persons.count { it.rank == "AET3" && it.qualifications == "MSO" } < 10) "MSO" else "MSOT"
-                        addPerson("AET3", shop, qual)
-                    }
-                }
-
-                repeat(6) { addPerson("AN", 12) }
-
-                persons.forEach { personDao.insertPerson(it) }
-            }
-
-            //Seed tail numbers if database is empty
-            if (tailNumberDao.getAllTailNumbers().first().isEmpty()) {
-                val defaultTailNumbers = listOf("2003", "2005", "2006", "2010", "2014")
-
-                defaultTailNumbers.forEach { number ->
-                    tailNumberDao.insertTailNumber(
-                        TailNumber(
-                            number = number,
-                            isActive = true,
-                            notes = "Default aircraft"
-                        )
-                    )
-                }
-            }
-
-            //Seed event types if database is empty
-            if (eventTypeDao.getAllEventTypes().first().isEmpty()) {
-                val presetEventTypes = listOf(
-                    EventType(
-                        name = "Wash",
-                        description = "Scheduled aircraft cleaning",
-                        iconName = "wash",
-                        color = "#4FC3F7",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "F. & W.W.",
-                        description = "Scheduled aircraft cleaning",
-                        iconName = "fww",
-                        color = "#4FC3F7",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "Comp Wash",
-                        description = "Scheduled aircraft cleaning",
-                        iconName = "comp wash",
-                        color = "#4FC3F7",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "Comp Rinse",
-                        description = "Scheduled aircraft cleaning",
-                        iconName = "comp rinse",
-                        color = "#4FC3F7",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "Weekly",
-                        description = "Routine weekly aircraft inspection",
-                        iconName = "inspection",
-                        color = "#66BB6A",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "Deployment",
-                        description = "Aircraft deployment assignment",
-                        iconName = "deployment",
-                        color = "#FF7043",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "Maintenance",
-                        description = "Scheduled maintenance work",
-                        iconName = "maintenance",
-                        color = "#FFA726",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "Training",
-                        description = "Personnel training event",
-                        iconName = "training",
-                        color = "#AB47BC",
-                        isPreset = true
-                    ),
-                    EventType(
-                        name = "Holiday",
-                        description = "Holiday or special occasion",
-                        iconName = "holiday",
-                        color = "#EF5350",
-                        isPreset = true
-                    )
-                )
-
-                presetEventTypes.forEach { eventType ->
-                    eventTypeDao.insertEventType(eventType)
-                }
-            }
+            val dataSeeder = DataSeeder(db)
+            dataSeeder.seedInitialData()
         }
     }
 
@@ -533,72 +305,18 @@ class MainActivity : ComponentActivity() {
                 val shopMap = shops.associateBy { it.name }
                 val peopleByShop = people.groupBy { it.shopId }
 
+                // Replace the existing shop layout in ShopRosterSection with:
+
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // LCPO, Division Managers, Maintenance Control (spread out)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        shopMap["LCPO"]?.let { shop ->
-                            ShopColumn(
-                                shop = shop,
-                                people = peopleByShop[shop.shopId].orEmpty(),
-                                shopList = shopList,
-                                personViewModel = personViewModel,
-                                filteredPeople = filteredPeople
-                            )
-                        }
-                        shopMap["Division Managers"]?.let { shop ->
-                            ShopColumn(
-                                shop = shop,
-                                people = peopleByShop[shop.shopId].orEmpty(),
-                                shopList = shopList,
-                                personViewModel = personViewModel,
-                                filteredPeople = filteredPeople
-                            )
-                        }
-                        shopMap["Maintenance Control"]?.let { shop ->
-                            ShopColumn(
-                                shop = shop,
-                                people = peopleByShop[shop.shopId].orEmpty(),
-                                shopList = shopList,
-                                personViewModel = personViewModel,
-                                filteredPeople = filteredPeople
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Engine, Metal, Prop, Avionics, Sensor (centered)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        listOf("Engine", "Metal", "Prop", "Avionics", "Sensor").forEach { name ->
-                            shopMap[name]?.let { shop ->
-                                ShopColumn(
-                                    shop = shop,
-                                    people = peopleByShop[shop.shopId].orEmpty(),
-                                    shopList = shopList,
-                                    personViewModel = personViewModel,
-                                    filteredPeople = filteredPeople
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Load Cage, Line Crew, Tool Room, QA, Nights (centered)
+                    // Row 1: Leadership Level
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         listOf(
-                            "Load Cage",
-                            "Line Crew",
-                            "Tool Room",
-                            "QA",
-                            "Nights"
+                            "C130 AVENG Officer",
+                            "Maintenance Officer",
+                            "LCPO"
                         ).forEach { name ->
                             shopMap[name]?.let { shop ->
                                 ShopColumn(
@@ -610,6 +328,101 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Row 2: Division Managers & Support
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf(
+                            "Division Managers",
+                            "AMO",
+                            "Flight Schedules",
+                            "AVENG Flight Pay"
+                        ).forEach { name ->
+                            shopMap[name]?.let { shop ->
+                                ShopColumn(
+                                    shop = shop,
+                                    people = peopleByShop[shop.shopId].orEmpty(),
+                                    shopList = shopList,
+                                    personViewModel = personViewModel,
+                                    filteredPeople = filteredPeople
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Row 3: Main Production Shops
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf(
+                            "Engine",
+                            "Prop",
+                            "Metal",
+                            "Load Cage",
+                            "Maintenance Control"
+                        ).forEach { name ->
+                            shopMap[name]?.let { shop ->
+                                ShopColumn(
+                                    shop = shop,
+                                    people = peopleByShop[shop.shopId].orEmpty(),
+                                    shopList = shopList,
+                                    personViewModel = personViewModel,
+                                    filteredPeople = filteredPeople
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Row 4: Electronics & Quality
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf(
+                            "Avionics",
+                            "Sensor",
+                            "Tool Room",
+                            "QA",
+                            "Line Crew"
+                        ).forEach { name ->
+                            shopMap[name]?.let { shop ->
+                                ShopColumn(
+                                    shop = shop,
+                                    people = peopleByShop[shop.shopId].orEmpty(),
+                                    shopList = shopList,
+                                    personViewModel = personViewModel,
+                                    filteredPeople = filteredPeople
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Row 5: Night Operations
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf("Nights", "QA - Nights").forEach { name ->
+                            shopMap[name]?.let { shop ->
+                                ShopColumn(
+                                    shop = shop,
+                                    people = peopleByShop[shop.shopId].orEmpty(),
+                                    shopList = shopList,
+                                    personViewModel = personViewModel,
+                                    filteredPeople = filteredPeople
+                                )
+                            }
+                        }
+                        // Add spacers to keep alignment
+                        repeat(3) { Spacer(modifier = Modifier.weight(1f)) }
                     }
                 }
             }
@@ -1438,7 +1251,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun UpcomingEventsSection() {
-        // Get context and setup ViewModels (similar to EventCalendarQuadrant)
+        // Get context and setup ViewModels
         val context = LocalContext.current
         val eventDao = AppDatabaseProvider.getDatabase(context).eventDao()
         val eventTypeDao = AppDatabaseProvider.getDatabase(context).eventTypeDao()
@@ -1447,36 +1260,310 @@ class MainActivity : ComponentActivity() {
             factory = EventViewModelFactory(eventRepository)
         )
 
+        // Get tail numbers for edit dialog
+        val tailNumberDao = AppDatabaseProvider.getDatabase(context).tailNumberDao()
+        val tailNumberRepository = TailNumberRepository(tailNumberDao)
+        val tailNumberViewModel: TailNumberViewModel = viewModel(
+            factory = TailNumberViewModelFactory(tailNumberRepository)
+        )
+
         val eventTypes = eventViewModel.eventTypes.collectAsState(initial = emptyList()).value
         val allEvents = eventViewModel.events.collectAsState(initial = emptyList()).value
+        val tailNumbers = tailNumberViewModel.tailNumbers.collectAsState(initial = emptyList()).value
 
-        // Filter for upcoming events (next 4 months)
+        // Filter for significant upcoming events (next 4 months)
         val today = LocalDate.now()
         val fourMonthsFromNow = today.plusMonths(4)
 
-        val upcomingEvents = remember(allEvents) {
+        val significantUpcomingEvents = remember(allEvents, eventTypes) {
             allEvents.filter { event ->
-                event.startDate >= today && event.startDate <= fourMonthsFromNow
+                // Only include events starting today or later within 4 months
+                event.startDate >= today && event.startDate <= fourMonthsFromNow &&
+                        // Filter for significant events only
+                        (
+                                // Multi-day events (always significant)
+                                event.startDate != event.endDate ||
+                                        // Specific significant event types
+                                        eventTypes.find { it.eventTypeId == event.eventTypeId }?.let { eventType ->
+                                            eventType.name.contains("Holiday", ignoreCase = true) ||
+                                                    eventType.name.contains("Training", ignoreCase = true) ||
+                                                    eventType.name.contains("Deployment", ignoreCase = true)
+                                        } == true ||
+                                        // Custom events without preset types (user-created, likely significant)
+                                        event.eventTypeId == null
+                                )
             }.sortedBy { it.startDate }
         }
+
+        // Group events by month for better organization
+        val eventsByMonth = remember(significantUpcomingEvents) {
+            significantUpcomingEvents.groupBy { event ->
+                YearMonth.from(event.startDate)
+            }.toSortedMap()
+        }
+
+        // Dialog states
+        var selectedEvent by remember { mutableStateOf<Event?>(null) }
+        var eventToEdit by remember { mutableStateOf<Event?>(null) }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp)
         ) {
-            Text(
-                text = "Upcoming Events (Next 4 Months)",
-                style = MaterialTheme.typography.titleLarge,
-                color = LightGrey,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            // Header with event count
+            // Header with event count
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start // Left align
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(32.dp)
+                    ) {
+                        Text(
+                            text = "Upcoming Significant Events",
+                            fontSize = 44.sp,
+                            color = LightGrey.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.alignByBaseline()
+                        )
+                        Text(
+                            text = "(Next 4 months)",
+                            fontSize = 24.sp,
+                            fontStyle = FontStyle.Italic,
+                            color = LightGrey.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.alignByBaseline()
+                        )
+                    }
+                }
 
-            // TODO: Event list display
-            Text(
-                text = "Events: ${upcomingEvents.size}",
-                color = LightGrey
+                Column(
+                    horizontalAlignment = Alignment.End // Right align
+                ) {
+                    Text(
+                        text = "${significantUpcomingEvents.size} events",
+                        fontSize = 28.sp,
+                        color = Orange,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (significantUpcomingEvents.isEmpty()) {
+                // Empty state
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "🗓️",
+                            fontSize = 48.sp
+                        )
+                        Text(
+                            text = "No significant events",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = "in the next 4 months",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            } else {
+                // Events list grouped by month
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    eventsByMonth.forEach { (month, monthEvents) ->
+                        // Month header
+                        item {
+                            Text(
+                                text = month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                                fontSize = 30.sp,
+                                color = LightGrey.copy(alpha = 0.7f),
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
+                            )
+                        }
+
+                        // Events in this month
+                        items(monthEvents) { event ->
+                            SignificantEventItem(
+                                event = event,
+                                eventType = eventTypes.find { it.eventTypeId == event.eventTypeId },
+                                onClick = { selectedEvent = event },
+                                onEditClick = { eventToEdit = event }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Event Details Dialog (using existing component)
+        selectedEvent?.let { event ->
+            EventDetailsDialog(
+                event = event,
+                onDismiss = { selectedEvent = null },
+                onEdit = {
+                    eventToEdit = event
+                    selectedEvent = null
+                },
+                onDelete = {
+                    eventViewModel.deleteEvent(event)
+                    selectedEvent = null
+                    Toast.makeText(context, "Event deleted: ${event.title}", Toast.LENGTH_SHORT).show()
+                },
+                onStatusUpdate = { updatedEvent ->
+                    eventViewModel.updateEvent(updatedEvent)
+                    selectedEvent = updatedEvent // Keep dialog open with updated event
+                    Toast.makeText(context, "Status updated to: ${updatedEvent.status}", Toast.LENGTH_SHORT).show()
+                }
             )
+        }
+
+        // Edit Event Dialog (using existing component)
+        eventToEdit?.let { event ->
+            EditEventDialog(
+                event = event,
+                eventTypes = eventTypes,
+                tailNumbers = tailNumbers,
+                onDismiss = { eventToEdit = null },
+                onEventUpdated = { updatedEvent ->
+                    eventViewModel.updateEvent(updatedEvent)
+                    eventToEdit = null
+                    Toast.makeText(context, "Event updated: ${updatedEvent.title}", Toast.LENGTH_SHORT).show()
+                },
+                onEventDeleted = { deletedEvent ->
+                    eventViewModel.deleteEvent(deletedEvent)
+                    eventToEdit = null
+                    Toast.makeText(context, "Event deleted: ${deletedEvent.title}", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+
+    @Composable
+    fun SignificantEventItem(
+        event: Event,
+        eventType: EventType?,
+        onClick: () -> Unit,
+        onEditClick: () -> Unit
+    ) {
+
+        // Event type color
+        val eventColor = if (eventType != null) {
+            getEventColor(eventType.color)
+        } else {
+            Color.Blue // Default for custom events
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick() },
+            colors = CardDefaults.cardColors(
+                containerColor = eventColor.copy(alpha = 0.45f)
+            ),
+            border = BorderStroke(2.dp, eventColor.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Event icon
+                Text(
+                    text = if (eventType != null) getEventIcon(eventType.iconName) else "📋",
+                    fontSize = 24.sp,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+
+                // Content column with title, date, and description
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(0.25f),
+                        ) {
+                            // Title
+                            Text(
+                                text = event.title,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LightGrey,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(0.5f)
+                        ) {
+                            // Date display
+                            val dateText = if (event.startDate == event.endDate) {
+                                event.startDate.format(DateTimeFormatter.ofPattern("EEEE, MMM dd, yyyy"))
+                            } else {
+                                val duration =
+                                    ChronoUnit.DAYS.between(event.startDate, event.endDate) + 1
+                                "${event.startDate.format(DateTimeFormatter.ofPattern("MMM dd"))} - ${
+                                    event.endDate.format(
+                                        DateTimeFormatter.ofPattern("MMM dd, yyyy")
+                                    )
+                                } ($duration days)"
+                            }
+
+                            Text(
+                                text = dateText,
+                                fontSize = 22.sp,
+                                color = Charcoal,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(2.25f)
+                        ) {
+                            // Description (if available)
+                            event.description?.let { description ->
+                                if (description.isNotBlank()) {
+                                    Text(
+                                        text = description,
+                                        fontSize = 22.sp,
+                                        color = Color.LightGray.copy(alpha=.7f),
+                                        fontStyle = FontStyle.Italic,
+                                        lineHeight = 18.sp,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
