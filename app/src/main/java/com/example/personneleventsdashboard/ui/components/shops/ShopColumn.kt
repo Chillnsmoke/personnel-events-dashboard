@@ -44,13 +44,18 @@ fun ShopColumn(
 ) {
     // Sorting as specified:
     val rankOrder = mapOf(
-        "AMTCM" to 0, "AETCM" to 0,
-        "AMTCS" to 1, "AETCS" to 1,
-        "AMTC"  to 2, "AETC"  to 2,
-        "AET1"  to 3, "AMT1"  to 3,
-        "AET2"  to 4, "AMT2"  to 4,
-        "AET3"  to 5, "AMT3"  to 5,
-        "AN"    to 6
+        "LTCDR" to 0,
+        "LT" to 1,
+        "LTJG" to 2,
+        "ENS" to 3,
+        "CWO" to 4,
+        "AMTCM" to 5, "AETCM" to 5,
+        "AMTCS" to 6, "AETCS" to 6,
+        "AMTC"  to 7, "AETC"  to 7,
+        "AET1"  to 8, "AMT1"  to 8,
+        "AET2"  to 9, "AMT2"  to 9,
+        "AET3"  to 10, "AMT3"  to 10,
+        "AN"    to 11
     )
     val sortedPeople = people.sortedWith(compareBy(
         { rankOrder[it.rank] ?: Int.MAX_VALUE },
