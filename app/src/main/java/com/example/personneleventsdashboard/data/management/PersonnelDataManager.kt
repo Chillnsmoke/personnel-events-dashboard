@@ -144,7 +144,7 @@ class PersonnelDataManager {
             PersonData("AMT3", "Stewart", "Austin", "Engine", "252-562-8206", "BAT", "days"),
             PersonData("AET2", "Suesens", "Nate", "Sensor", "619-606-4992", "MSO, LOX", "1"),
             PersonData("AET3", "Terrell", "Averre", "Avionics", "407-520-2864", "BAT", "3"),
-            PersonData("AET1", "Todd", "Daniel", "Maintenance Control", "908-783-5665", "MSO, WC", "1"),
+            PersonData("AET1", "Todd", "Daniel", "MPC Analyst", "908-783-5665", "MSO, WC", "1"),
             PersonData("AET3", "Torres", "Tecolote", "Tool Room", "253-232-3511", "MSO", "4"),
             PersonData("AET3", "Verity", "Branden", "Avionics", "631-764-6823", "MSO", "2"),
             PersonData("AET3", "Vitale", "Dino", "Sensor", "646-660-3810", "MSO", "Days"),
@@ -158,7 +158,7 @@ class PersonnelDataManager {
             PersonData("AET1", "Will", "Kerr", "Avionics", "919-570-4423", "MSOX, WC", "3"),
             PersonData("AMT2", "Williams", "Reece", "Nights", "601-527-5272", "LM", "Nights"),
             PersonData("AET2", "Wilson", "Neil", "Nights", "863-214-0783", "MSOX, WC, LOXI", "Nights"),
-            PersonData("AMT1", "Wolfe", "Logan", "Load Cage", "616-914-4617", "LMX, WC, HP-X", "4"),
+            PersonData("AMT1", "Wolfe", "Logan", "Training", "616-914-4617", "LMX, WC, HP-X", "4"),
             PersonData("AET2", "Yoder", "Daniel", "Engine", "812-706-5451", "MSO, WC", "3"),
             PersonData("AMT1", "Zalewski", "Zach", "Prop", "252-548-4201", "LM, WC, HAZ", "4")
         )

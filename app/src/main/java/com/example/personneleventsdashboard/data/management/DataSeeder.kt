@@ -43,7 +43,7 @@ class DataSeeder(
         val shopDao = database.shopDao()
         val shopNames = listOf(
             "LCPO", "Division Managers", "QA - Nights", "Flight Schedules", "C130 AVENG Officer", "AVENG Flight Pay", "Maintenance Officer", "AMO", "Engine", "Prop", "Metal", "Load Cage", "Nights",
-            "Maintenance Control", "Avionics", "Sensor", "Tool Room", "QA", "Line Crew"
+            "Maintenance Control", "Avionics", "Sensor", "Tool Room", "QA", "Line Crew", "MPC Analyst", "Training"
         )
 
         shopNames.forEach { name ->

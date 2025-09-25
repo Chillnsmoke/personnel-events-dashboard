@@ -308,15 +308,54 @@ class MainActivity : ComponentActivity() {
                 // Replace the existing shop layout in ShopRosterSection with:
 
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Row 1: Leadership Level
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Heading Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Text(
+                            text = "C-130 Shop and Shift Assignments",
+                            fontSize = 44.sp,
+                            color = LightGrey.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.alignByBaseline()
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 1: AVENG Officer
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         listOf(
-                            "C130 AVENG Officer",
+                            "C130 AVENG Officer"
+                        ).forEach { name ->
+                            shopMap[name]?.let { shop ->
+                                ShopColumn(
+                                    shop = shop,
+                                    people = peopleByShop[shop.shopId].orEmpty(),
+                                    shopList = shopList,
+                                    personViewModel = personViewModel,
+                                    filteredPeople = filteredPeople
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 2: LCPO, MX Officer, Division Managers
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Spacer(modifier = Modifier.width(315.dp))
+                        listOf(
+                            "LCPO",
                             "Maintenance Officer",
-                            "LCPO"
+                            "Division Managers"
                         ).forEach { name ->
                             shopMap[name]?.let { shop ->
                                 ShopColumn(
@@ -328,43 +367,61 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.width(315.dp))
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Row 2: Division Managers & Support
+                    // Row 3: Small Shops
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        listOf(
-                            "Division Managers",
-                            "AMO",
-                            "Flight Schedules",
-                            "AVENG Flight Pay"
-                        ).forEach { name ->
-                            shopMap[name]?.let { shop ->
-                                ShopColumn(
-                                    shop = shop,
-                                    people = peopleByShop[shop.shopId].orEmpty(),
-                                    shopList = shopList,
-                                    personViewModel = personViewModel,
-                                    filteredPeople = filteredPeople
-                                )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            listOf(
+                                "Training"
+                            ).forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
                             }
                         }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // Row 3: Main Production Shops
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            listOf(
+                                "Flight Schedules"
+                            ).forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
+                            }
+                        }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         listOf(
-                            "Engine",
-                            "Prop",
-                            "Metal",
-                            "Load Cage",
                             "Maintenance Control"
                         ).forEach { name ->
                             shopMap[name]?.let { shop ->
@@ -378,19 +435,65 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // Row 4: Electronics & Quality
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    listOf(
+                        "AVENG Flight Pay"
+                    ).forEach { name ->
+                        shopMap[name]?.let { shop ->
+                            ShopColumn(
+                                shop = shop,
+                                people = peopleByShop[shop.shopId].orEmpty(),
+                                shopList = shopList,
+                                personViewModel = personViewModel,
+                                filteredPeople = filteredPeople
+                            )
+                        }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    listOf(
+                        "MPC Analyst"
+                    ).forEach { name ->
+                        shopMap[name]?.let { shop ->
+                            ShopColumn(
+                                shop = shop,
+                                people = peopleByShop[shop.shopId].orEmpty(),
+                                shopList = shopList,
+                                personViewModel = personViewModel,
+                                filteredPeople = filteredPeople
+                            )
+                        }
+                    }
+                }
+
+
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 4: Main Shops
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        )  {
                         listOf(
-                            "Avionics",
-                            "Sensor",
-                            "Tool Room",
-                            "QA",
-                            "Line Crew"
+                            "AMO",
+                            "Engine",
+                            "Metal"
                         ).forEach { name ->
                             shopMap[name]?.let { shop ->
                                 ShopColumn(
@@ -402,27 +505,79 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Row 5: Night Operations
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        listOf("Nights", "QA - Nights").forEach { name ->
-                            shopMap[name]?.let { shop ->
-                                ShopColumn(
-                                    shop = shop,
-                                    people = peopleByShop[shop.shopId].orEmpty(),
-                                    shopList = shopList,
-                                    personViewModel = personViewModel,
-                                    filteredPeople = filteredPeople
-                                )
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        )  {
+                            listOf(
+                                "Prop",
+                                "Load Cage",
+                                "Line Crew"
+                            ).forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
                             }
                         }
-                        // Add spacers to keep alignment
-                        repeat(3) { Spacer(modifier = Modifier.weight(1f)) }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        )  {
+                            listOf("Avionics", "Tool Room").forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
+                            }
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        )  {
+                            listOf("QA", "Sensor").forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
+                            }
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        )  {
+                            listOf("QA - Nights", "Nights").forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1567,39 +1722,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-
-    @Composable
-    fun StatusPersonPill(
-        person: Person
-    ) {
-
-        Card(
-            shape = RoundedCornerShape(15.dp),
-            colors = CardDefaults.cardColors(containerColor = colorForRank(person.rank)),
-            modifier = Modifier
-                .width(380.dp)
-                .padding(vertical = 2.dp)
-                .height(40.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "${person.rank} ${person.lastName}, ${person.firstName}",
-                        fontSize = 26.sp,
-                        color = Charcoal,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-    }
 
     @Composable
     fun StatusSummaryItem(
