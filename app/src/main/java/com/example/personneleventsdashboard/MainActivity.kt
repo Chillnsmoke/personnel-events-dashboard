@@ -90,6 +90,7 @@ import java.time.temporal.ChronoUnit
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.text.font.Font
 import com.example.personneleventsdashboard.data.management.DataSeeder
 import com.example.personneleventsdashboard.ui.components.personnel.PersonPill
@@ -120,6 +121,11 @@ import com.example.personneleventsdashboard.ui.components.shops.getShopNameById
 import com.example.personneleventsdashboard.ui.components.shops.ShopColumn
 import com.example.personneleventsdashboard.ui.components.personnel.FilterTypeSelector
 import com.example.personneleventsdashboard.ui.components.personnel.FilterValueSelector
+import com.example.personneleventsdashboard.data.management.TailNumberManager
+import com.example.personneleventsdashboard.ui.components.management.TailNumberManagementDialog
+
+
+
 
 
 
@@ -317,7 +323,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Text(
                             text = "C-130 Shop and Shift Assignments",
-                            fontSize = 44.sp,
+                            fontSize = 58.sp,
                             color = LightGrey.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.alignByBaseline()
@@ -532,7 +538,7 @@ class MainActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         )  {
-                            listOf("Avionics", "Tool Room").forEach { name ->
+                            listOf("Avionics").forEach { name ->
                                 shopMap[name]?.let { shop ->
                                     ShopColumn(
                                         shop = shop,
@@ -549,7 +555,7 @@ class MainActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         )  {
-                            listOf("QA", "Sensor").forEach { name ->
+                            listOf("QA", "Sensor", "Tool Room").forEach { name ->
                                 shopMap[name]?.let { shop ->
                                     ShopColumn(
                                         shop = shop,
@@ -749,7 +755,7 @@ class MainActivity : ComponentActivity() {
                             ),
                             contentColor = Orange.copy(alpha = 0.8f)
                         ),
-                        border = BorderStroke(2.dp, Orange.copy(alpha = 0.8f)),
+                        border = BorderStroke(2.dp, Orange.copy(alpha = 0.3f)),
                         contentPadding = PaddingValues(0.dp)
                     ) {
                         Text(
@@ -1460,6 +1466,7 @@ class MainActivity : ComponentActivity() {
         // Dialog states
         var selectedEvent by remember { mutableStateOf<Event?>(null) }
         var eventToEdit by remember { mutableStateOf<Event?>(null) }
+        var showTailNumberDialog by remember { mutableStateOf(false) }
 
         Column(
             modifier = Modifier
@@ -1501,12 +1508,27 @@ class MainActivity : ComponentActivity() {
                 Column(
                     horizontalAlignment = Alignment.End // Right align
                 ) {
+                    Row {
                     Text(
                         text = "${significantUpcomingEvents.size} events",
                         fontSize = 28.sp,
                         color = Orange,
                         fontWeight = FontWeight.Medium
                     )
+                        Spacer(Modifier.width(20.dp))
+                    OutlinedButton(
+                        onClick = { showTailNumberDialog = true },
+                        modifier = Modifier.height(36.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.3f),
+                            contentColor = Charcoal
+                        ),
+                        border = BorderStroke(1.dp, Charcoal.copy(alpha = 0.6f)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text("Manage Aircraft", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                    }
+                }
                 }
             }
 
@@ -1608,6 +1630,53 @@ class MainActivity : ComponentActivity() {
                     eventToEdit = null
                     Toast.makeText(context, "Event deleted: ${deletedEvent.title}", Toast.LENGTH_SHORT).show()
                 }
+            )
+        }
+
+        if (showTailNumberDialog) {
+            TailNumberManagementDialog(
+                tailNumbers = tailNumbers,
+                onDismiss = { showTailNumberDialog = false },
+                onAdd = { number -> // Just number, no notes
+                    val lifecycleScope = (context as ComponentActivity).lifecycleScope
+                    lifecycleScope.launch {
+                        val tailNumberManager = TailNumberManager(tailNumberRepository)
+                        val result = tailNumberManager.addTailNumber(number)
+
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "Tail number $number added", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Error: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                onEdit = { tailNumber ->
+                    val lifecycleScope = (context as ComponentActivity).lifecycleScope
+                    lifecycleScope.launch {
+                        val tailNumberManager = TailNumberManager(tailNumberRepository)
+                        val result = tailNumberManager.updateTailNumber(tailNumber)
+
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "Tail number updated", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Error updating: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                onDelete = { tailNumber ->
+                    val lifecycleScope = (context as ComponentActivity).lifecycleScope
+                    lifecycleScope.launch {
+                        val tailNumberManager = TailNumberManager(tailNumberRepository)
+                        val result = tailNumberManager.deleteTailNumber(tailNumber)
+
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "Tail number ${tailNumber.number} deleted", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Error deleting: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                // Removed onToggleActive parameter
             )
         }
     }
