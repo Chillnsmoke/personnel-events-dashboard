@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.personneleventsdashboard.model.Person
 import com.example.personneleventsdashboard.model.Shop
+import com.example.personneleventsdashboard.ui.theme.Charcoal
 
 @Composable
 fun PersonSelectorDialog(
@@ -105,10 +106,7 @@ fun PersonSelectorDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onPersonSelected(person) },
-                            colors = CardDefaults.cardColors(
-                                containerColor = colorForRank(person.rank).copy(alpha = 0.3f)
-                            ),
-                            border = BorderStroke(1.dp, colorForRank(person.rank))
+                            border = BorderStroke(1.dp, Charcoal)
                         ) {
                             Row(
                                 modifier = Modifier

@@ -37,3 +37,7 @@ function Write-Tree {
 
 Write-Tree -Path . -Depth 15 -Exclude $Exclude | Set-Content -Encoding UTF8 STRUCTURE.md
 Write-Host "Wrote STRUCTURE.md"
+
+
+
+./gradlew assembleDebug -x testDebugUnitTest -x connectedDebugAndroidTest

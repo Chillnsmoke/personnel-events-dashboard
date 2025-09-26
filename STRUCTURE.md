@@ -17,6 +17,11 @@
 │   │   │   │   │   └── example/
 │   │   │   │   │   │   └── personneleventsdashboard/
 │   │   │   │   │   │   │   ├── data/
+│   │   │   │   │   │   │   │   ├── management/
+│   │   │   │   │   │   │   │   │   ├── DataSeeder.kt
+│   │   │   │   │   │   │   │   │   ├── PersonnelDataManager.kt
+│   │   │   │   │   │   │   │   │   ├── TailNumberManagementDialog.kt
+│   │   │   │   │   │   │   │   │   └── TailNumberManager.kt
 │   │   │   │   │   │   │   │   ├── AppDatabase.kt
 │   │   │   │   │   │   │   │   ├── AppDatabaseProvider.kt
 │   │   │   │   │   │   │   │   ├── DateConverters.kt
@@ -47,6 +52,8 @@
 │   │   │   │   │   │   │   │   │   │   ├── CalendarComponents.kt
 │   │   │   │   │   │   │   │   │   │   ├── EventHelpers.kt
 │   │   │   │   │   │   │   │   │   │   └── EventIndicator.kt
+│   │   │   │   │   │   │   │   │   ├── management/
+│   │   │   │   │   │   │   │   │   │   └── SettingsDialog.kt
 │   │   │   │   │   │   │   │   │   ├── personnel/
 │   │   │   │   │   │   │   │   │   │   ├── AddPersonDialog.kt
 │   │   │   │   │   │   │   │   │   │   ├── EditPersonDialog.kt

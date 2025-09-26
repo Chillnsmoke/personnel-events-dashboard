@@ -123,11 +123,7 @@ import com.example.personneleventsdashboard.ui.components.personnel.FilterTypeSe
 import com.example.personneleventsdashboard.ui.components.personnel.FilterValueSelector
 import com.example.personneleventsdashboard.data.management.TailNumberManager
 import com.example.personneleventsdashboard.ui.components.management.TailNumberManagementDialog
-
-
-
-
-
+import com.example.personneleventsdashboard.ui.components.management.SettingsDialog
 
 class ShopViewModel(application: Application) : AndroidViewModel(application) {
     private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
@@ -175,6 +171,7 @@ class MainActivity : ComponentActivity() {
             PersonnelEventsDashboardTheme {
                 // Initialize ViewModels
                 val context = LocalContext.current
+                var showAircraftManagement by remember { mutableStateOf(false) }
 
                 // PersonViewModel with Repository and Factory
                 val personDao = AppDatabaseProvider.getDatabase(context).personDao()
@@ -206,7 +203,8 @@ class MainActivity : ComponentActivity() {
                             shops = shopList,
                             people = personViewModel.people.collectAsState(initial = emptyList()).value,
                             shopList = shopList,
-                            personViewModel = personViewModel
+                            personViewModel = personViewModel,
+                            onShowAircraftManagement = { showAircraftManagement = true }
                         )
                     }
 
@@ -231,7 +229,10 @@ class MainActivity : ComponentActivity() {
                                 .weight(1f)
                                 .fillMaxWidth()
                         ) {
-                            UpcomingEventsSection()
+                            UpcomingEventsSection(
+                                showAircraftManagement = showAircraftManagement,
+                                onAircraftManagementDismiss = { showAircraftManagement = false }
+                            )
                         }
                     }
                 }
@@ -251,12 +252,14 @@ class MainActivity : ComponentActivity() {
         shops: List<Shop>,
         people: List<Person>,
         shopList: List<Shop>,
-        personViewModel: PersonViewModel
+        personViewModel: PersonViewModel,
+        onShowAircraftManagement: () -> Unit
     ) {
         // Dialog states
         var showAddPersonDialog by remember { mutableStateOf(false) }
         var showPersonSelectorDialog by remember { mutableStateOf(false) }
         var selectedPersonToEdit by remember { mutableStateOf<Person?>(null) }
+        var showSettingsDialog by remember { mutableStateOf(false) }
 
         // Filter state management
         var currentFilterState by remember { mutableStateOf(FilterState()) }
@@ -422,65 +425,65 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        listOf(
-                            "Maintenance Control"
-                        ).forEach { name ->
-                            shopMap[name]?.let { shop ->
-                                ShopColumn(
-                                    shop = shop,
-                                    people = peopleByShop[shop.shopId].orEmpty(),
-                                    shopList = shopList,
-                                    personViewModel = personViewModel,
-                                    filteredPeople = filteredPeople
-                                )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            listOf(
+                                "Maintenance Control"
+                            ).forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
                             }
                         }
-                    }
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    listOf(
-                        "AVENG Flight Pay"
-                    ).forEach { name ->
-                        shopMap[name]?.let { shop ->
-                            ShopColumn(
-                                shop = shop,
-                                people = peopleByShop[shop.shopId].orEmpty(),
-                                shopList = shopList,
-                                personViewModel = personViewModel,
-                                filteredPeople = filteredPeople
-                            )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            listOf(
+                                "AVENG Flight Pay"
+                            ).forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
+                            }
                         }
-                    }
-                }
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    listOf(
-                        "MPC Analyst"
-                    ).forEach { name ->
-                        shopMap[name]?.let { shop ->
-                            ShopColumn(
-                                shop = shop,
-                                people = peopleByShop[shop.shopId].orEmpty(),
-                                shopList = shopList,
-                                personViewModel = personViewModel,
-                                filteredPeople = filteredPeople
-                            )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            listOf(
+                                "MPC Analyst"
+                            ).forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
+                            }
                         }
-                    }
-                }
 
 
                     }
@@ -495,28 +498,28 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
-                        )  {
-                        listOf(
-                            "AMO",
-                            "Engine",
-                            "Metal"
-                        ).forEach { name ->
-                            shopMap[name]?.let { shop ->
-                                ShopColumn(
-                                    shop = shop,
-                                    people = peopleByShop[shop.shopId].orEmpty(),
-                                    shopList = shopList,
-                                    personViewModel = personViewModel,
-                                    filteredPeople = filteredPeople
-                                )
+                        ) {
+                            listOf(
+                                "AMO",
+                                "Engine",
+                                "Metal"
+                            ).forEach { name ->
+                                shopMap[name]?.let { shop ->
+                                    ShopColumn(
+                                        shop = shop,
+                                        people = peopleByShop[shop.shopId].orEmpty(),
+                                        shopList = shopList,
+                                        personViewModel = personViewModel,
+                                        filteredPeople = filteredPeople
+                                    )
+                                }
                             }
-                        }
                         }
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
-                        )  {
+                        ) {
                             listOf(
                                 "Prop",
                                 "Load Cage",
@@ -537,7 +540,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
-                        )  {
+                        ) {
                             listOf("Avionics").forEach { name ->
                                 shopMap[name]?.let { shop ->
                                     ShopColumn(
@@ -554,7 +557,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
-                        )  {
+                        ) {
                             listOf("QA", "Sensor", "Tool Room").forEach { name ->
                                 shopMap[name]?.let { shop ->
                                     ShopColumn(
@@ -571,7 +574,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
-                        )  {
+                        ) {
                             listOf("QA - Nights", "Nights").forEach { name ->
                                 shopMap[name]?.let { shop ->
                                     ShopColumn(
@@ -605,19 +608,8 @@ class MainActivity : ComponentActivity() {
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Add Person Button
-                    OutlinedButton(
-                        onClick = { showAddPersonDialog = true },
-                        modifier = Modifier.width(130.dp).height(48.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.LightGray.copy(alpha = 0.5f),
-                            contentColor = Forest.copy(alpha = 0.8f)
-                        ),
-                        border = BorderStroke(2.dp, Forest.copy(alpha = 0.8f)),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text("Add Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
+                    // Spacer to replace Add Person button (keep alignment)
+                    Spacer(modifier = Modifier.width(130.dp))
 
                     // Clear All Filters (only show if any filter is active)
                     if (currentFilterState.filter1 != null || currentFilterState.filter2 != null ||
@@ -725,18 +717,24 @@ class MainActivity : ComponentActivity() {
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Edit Person Button
+                    // Settings Button (replaces Edit Person)
                     OutlinedButton(
-                        onClick = { showPersonSelectorDialog = true },
+                        onClick = { showSettingsDialog = true },
                         modifier = Modifier.width(130.dp).height(48.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color.LightGray.copy(alpha = 0.5f),
-                            contentColor = DarkBlue.copy(alpha = 0.8f)
+                            contentColor = Charcoal
                         ),
-                        border = BorderStroke(2.dp, DarkBlue.copy(alpha = 0.8f)),
+                        border = BorderStroke(2.dp, LightGrey.copy(alpha = 0.3f)),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text("Edit Person", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("⚙️", fontSize = 16.sp)
+                            Text("Settings", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
                     }
 
                     // Filter Personnel Button (replaces the text label)
@@ -1199,62 +1197,81 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Dialog handlers - Add Person
-            if (showAddPersonDialog) {
-                AddPersonDialog(
-                    shopList = shopList,
-                    allQualifications = allQualifications,
-                    allRanks = allRanks,
-                    allSections = allSections,
-                    onDismiss = { showAddPersonDialog = false },
-                    onSave = { newPerson ->
-                        personViewModel.insertPerson(newPerson)
-                        showAddPersonDialog = false
+            // Settings Dialog
+            if (showSettingsDialog) {
+                SettingsDialog(
+                    onDismiss = { showSettingsDialog = false },
+                    onAddPerson = {
+                        showSettingsDialog = true
+                        showAddPersonDialog = true
                     },
-                    onSaveAndContinue = { newPerson ->
-                        personViewModel.insertPerson(newPerson)
-                        // Keep dialog open for next entry
-                    }
-                )
-            }
-
-            // Dialog handlers - Person Selector
-            if (showPersonSelectorDialog) {
-                PersonSelectorDialog(
-                    people = people,
-                    shopList = shopList,
-                    onPersonSelected = { person ->
-                        selectedPersonToEdit = person
-                        showPersonSelectorDialog = false
-                    },
-                    onDismiss = { showPersonSelectorDialog = false }
-                )
-            }
-
-            // Dialog handlers - Edit Person
-            selectedPersonToEdit?.let { person ->
-                EditPersonDialog(
-                    person = person,
-                    shopList = shopList,
-                    allQualifications = allQualifications,
-                    allRanks = allRanks,
-                    allSections = allSections,
-                    onDismiss = { selectedPersonToEdit = null },
-                    onSave = { updatedPerson ->
-                        personViewModel.updatePerson(updatedPerson)
-                        selectedPersonToEdit = null
-                    },
-                    onSaveAndEditAnother = { updatedPerson ->
-                        personViewModel.updatePerson(updatedPerson)
-                        // Keep dialog open but switch to selector
-                        selectedPersonToEdit = null
+                    onEditPerson = {
+                        showSettingsDialog = true
                         showPersonSelectorDialog = true
                     },
-                    onDelete = { personToDelete ->
-                        personViewModel.deletePerson(personToDelete)
-                        selectedPersonToEdit = null
+                    onManageAircraft = {
+                        showSettingsDialog = true
+                        onShowAircraftManagement()
                     }
                 )
+
+                // Dialog handlers - Add Person
+                if (showAddPersonDialog) {
+                    AddPersonDialog(
+                        shopList = shopList,
+                        allQualifications = allQualifications,
+                        allRanks = allRanks,
+                        allSections = allSections,
+                        onDismiss = { showAddPersonDialog = false },
+                        onSave = { newPerson ->
+                            personViewModel.insertPerson(newPerson)
+                            showAddPersonDialog = false
+                        },
+                        onSaveAndContinue = { newPerson ->
+                            personViewModel.insertPerson(newPerson)
+                            // Keep dialog open for next entry
+                        }
+                    )
+                }
+
+                // Dialog handlers - Person Selector
+                if (showPersonSelectorDialog) {
+                    PersonSelectorDialog(
+                        people = people,
+                        shopList = shopList,
+                        onPersonSelected = { person ->
+                            selectedPersonToEdit = person
+                            showPersonSelectorDialog = false
+                        },
+                        onDismiss = { showPersonSelectorDialog = false }
+                    )
+                }
+
+                // Dialog handlers - Edit Person
+                selectedPersonToEdit?.let { person ->
+                    EditPersonDialog(
+                        person = person,
+                        shopList = shopList,
+                        allQualifications = allQualifications,
+                        allRanks = allRanks,
+                        allSections = allSections,
+                        onDismiss = { selectedPersonToEdit = null },
+                        onSave = { updatedPerson ->
+                            personViewModel.updatePerson(updatedPerson)
+                            selectedPersonToEdit = null
+                        },
+                        onSaveAndEditAnother = { updatedPerson ->
+                            personViewModel.updatePerson(updatedPerson)
+                            // Keep dialog open but switch to selector
+                            selectedPersonToEdit = null
+                            showPersonSelectorDialog = true
+                        },
+                        onDelete = { personToDelete ->
+                            personViewModel.deletePerson(personToDelete)
+                            selectedPersonToEdit = null
+                        }
+                    )
+                }
             }
         }
     }
@@ -1411,7 +1428,10 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun UpcomingEventsSection() {
+    fun UpcomingEventsSection(
+        showAircraftManagement: Boolean = false,
+        onAircraftManagementDismiss: () -> Unit = {}
+    ) {
         // Get context and setup ViewModels
         val context = LocalContext.current
         val eventDao = AppDatabaseProvider.getDatabase(context).eventDao()
@@ -1474,7 +1494,6 @@ class MainActivity : ComponentActivity() {
                 .padding(8.dp)
         ) {
             // Header with event count
-            // Header with event count
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -1506,31 +1525,17 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Column(
-                    horizontalAlignment = Alignment.End // Right align
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Row {
                     Text(
                         text = "${significantUpcomingEvents.size} events",
                         fontSize = 28.sp,
                         color = Orange,
                         fontWeight = FontWeight.Medium
                     )
-                        Spacer(Modifier.width(20.dp))
-                    OutlinedButton(
-                        onClick = { showTailNumberDialog = true },
-                        modifier = Modifier.height(36.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.LightGray.copy(alpha = 0.3f),
-                            contentColor = Charcoal
-                        ),
-                        border = BorderStroke(1.dp, Charcoal.copy(alpha = 0.6f)),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        Text("Manage Aircraft", fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                    }
-                }
                 }
             }
+
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -1633,11 +1638,11 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        if (showTailNumberDialog) {
+        if (showAircraftManagement) {
             TailNumberManagementDialog(
                 tailNumbers = tailNumbers,
-                onDismiss = { showTailNumberDialog = false },
-                onAdd = { number -> // Just number, no notes
+                onDismiss = onAircraftManagementDismiss,
+                onAdd = { number ->
                     val lifecycleScope = (context as ComponentActivity).lifecycleScope
                     lifecycleScope.launch {
                         val tailNumberManager = TailNumberManager(tailNumberRepository)
