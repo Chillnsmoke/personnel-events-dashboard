@@ -22,8 +22,8 @@ fun SettingsDialog(
     onAddPerson: () -> Unit,
     onEditPerson: () -> Unit,
     onManageAircraft: () -> Unit,
+    onManageShops: () -> Unit,
     // Future functions - commented out for now
-    // onManageShops: () -> Unit,
     // onManageEvents: () -> Unit,
     // onBackupRestore: () -> Unit,
     // onThemeSettings: () -> Unit
@@ -96,6 +96,29 @@ fun SettingsDialog(
                 ) {
                     Text(
                         "Manage Aircraft",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+
+                Divider()
+
+                Text(
+                    "Shop Management",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+
+                // Shop Management Button
+                OutlinedButton(
+                    onClick = onManageShops,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    border = BorderStroke(2.dp, Charcoal),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        "Manage Shops",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )

@@ -49,7 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.personneleventsdashboard.ui.theme.Shop
 import kotlinx.coroutines.flow.Flow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -124,11 +123,10 @@ import com.example.personneleventsdashboard.ui.components.personnel.FilterValueS
 import com.example.personneleventsdashboard.data.management.TailNumberManager
 import com.example.personneleventsdashboard.ui.components.management.TailNumberManagementDialog
 import com.example.personneleventsdashboard.ui.components.management.SettingsDialog
+import com.example.personneleventsdashboard.viewmodel.ShopViewModel
+import com.example.personneleventsdashboard.ui.components.management.ShopManagementDialog
 
-class ShopViewModel(application: Application) : AndroidViewModel(application) {
-    private val shopDao = AppDatabaseProvider.getDatabase(application).shopDao()
-    val shops: Flow<List<Shop>> = shopDao.getAllShops()
-}
+
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -180,14 +178,14 @@ class MainActivity : ComponentActivity() {
                     factory = PersonViewModelFactory(personRepository)
                 )
 
-                // ShopViewModel can stay as-is if it still uses AndroidViewModel
                 val shopViewModel: ShopViewModel = viewModel(
                     factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-                        context.applicationContext as Application
+                        LocalContext.current.applicationContext as Application
                     )
                 )
+                val shopList = shopViewModel.allShops.collectAsState(initial = emptyList()).value
+                val allShops = shopViewModel.allShops.collectAsState(initial = emptyList()).value
 
-                val shopList = shopViewModel.shops.collectAsState(initial = emptyList()).value
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -204,7 +202,9 @@ class MainActivity : ComponentActivity() {
                             people = personViewModel.people.collectAsState(initial = emptyList()).value,
                             shopList = shopList,
                             personViewModel = personViewModel,
-                            onShowAircraftManagement = { showAircraftManagement = true }
+                            onShowAircraftManagement = { showAircraftManagement = true },
+                            shopViewModel = shopViewModel,
+                            allShops = allShops
                         )
                     }
 
@@ -253,13 +253,16 @@ class MainActivity : ComponentActivity() {
         people: List<Person>,
         shopList: List<Shop>,
         personViewModel: PersonViewModel,
-        onShowAircraftManagement: () -> Unit
+        onShowAircraftManagement: () -> Unit,
+        shopViewModel: ShopViewModel,
+        allShops: List<Shop>
     ) {
         // Dialog states
         var showAddPersonDialog by remember { mutableStateOf(false) }
         var showPersonSelectorDialog by remember { mutableStateOf(false) }
         var selectedPersonToEdit by remember { mutableStateOf<Person?>(null) }
         var showSettingsDialog by remember { mutableStateOf(false) }
+        var showShopManagementDialog by remember { mutableStateOf(false) }
 
         // Filter state management
         var currentFilterState by remember { mutableStateOf(FilterState()) }
@@ -313,6 +316,11 @@ class MainActivity : ComponentActivity() {
                 // Existing shop roster layout
                 val shopMap = shops.associateBy { it.name }
                 val peopleByShop = people.groupBy { it.shopId }
+                // Create position-based shop mapping
+                val shopsByPosition = shopList.associateBy { it.displayPosition }
+
+                // Helper function to get shop at specific position
+                fun getShopAtPosition(position: Int): Shop? = shopsByPosition[position]
 
                 // Replace the existing shop layout in ShopRosterSection with:
 
@@ -334,15 +342,33 @@ class MainActivity : ComponentActivity() {
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Row 1: AVENG Officer
+                    // Row 1: Position 1 (AVENG Officer)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        listOf(
-                            "C130 AVENG Officer"
-                        ).forEach { name ->
-                            shopMap[name]?.let { shop ->
+                        getShopAtPosition(1)?.let { shop ->
+                            ShopColumn(
+                                shop = shop,
+                                people = peopleByShop[shop.shopId].orEmpty(),
+                                shopList = shopList,
+                                personViewModel = personViewModel,
+                                filteredPeople = filteredPeople
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Row 2: Positions 2-4 (Management)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Spacer(modifier = Modifier.width(315.dp))
+
+                        // Positions 2, 3, 4
+                        (2..4).forEach { position ->
+                            getShopAtPosition(position)?.let { shop ->
                                 ShopColumn(
                                     shop = shop,
                                     people = peopleByShop[shop.shopId].orEmpty(),
@@ -352,48 +378,24 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Row 2: LCPO, MX Officer, Division Managers
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Spacer(modifier = Modifier.width(315.dp))
-                        listOf(
-                            "LCPO",
-                            "Maintenance Officer",
-                            "Division Managers"
-                        ).forEach { name ->
-                            shopMap[name]?.let { shop ->
-                                ShopColumn(
-                                    shop = shop,
-                                    people = peopleByShop[shop.shopId].orEmpty(),
-                                    shopList = shopList,
-                                    personViewModel = personViewModel,
-                                    filteredPeople = filteredPeople
-                                )
-                            }
-                        }
                         Spacer(modifier = Modifier.width(315.dp))
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Row 3: Small Shops
+                    // Row 3: Positions 5-9 (Support Functions) - Using Column layout for proper alignment
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf(
-                                "Training"
-                            ).forEach { name ->
-                                shopMap[name]?.let { shop ->
+                        // 5 columns, each with weight(1f) for even spacing
+                        (5..9).forEach { position ->
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                getShopAtPosition(position)?.let { shop ->
                                     ShopColumn(
                                         shop = shop,
                                         people = peopleByShop[shop.shopId].orEmpty(),
@@ -402,188 +404,38 @@ class MainActivity : ComponentActivity() {
                                         filteredPeople = filteredPeople
                                     )
                                 }
+                                // Empty column if no shop at this position - maintains spacing
                             }
                         }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf(
-                                "Flight Schedules"
-                            ).forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf(
-                                "Maintenance Control"
-                            ).forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf(
-                                "AVENG Flight Pay"
-                            ).forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf(
-                                "MPC Analyst"
-                            ).forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-
-
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Row 4: Main Shops
+                    // Operational Columns: Positions 10-34
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf(
-                                "AMO",
-                                "Engine",
-                                "Metal"
-                            ).forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf(
-                                "Prop",
-                                "Load Cage",
-                                "Line Crew"
-                            ).forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf("Avionics").forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf("QA", "Sensor", "Tool Room").forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
-                                }
-                            }
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            listOf("QA - Nights", "Nights").forEach { name ->
-                                shopMap[name]?.let { shop ->
-                                    ShopColumn(
-                                        shop = shop,
-                                        people = peopleByShop[shop.shopId].orEmpty(),
-                                        shopList = shopList,
-                                        personViewModel = personViewModel,
-                                        filteredPeople = filteredPeople
-                                    )
+                        // 5 columns, each with 5 positions
+                        (0..4).forEach { columnIndex ->
+                            val startPosition = 10 + (columnIndex * 5) // 10, 15, 20, 25, 30
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // 5 positions per column
+                                (startPosition until startPosition + 5).forEach { position ->
+                                    getShopAtPosition(position)?.let { shop ->
+                                        ShopColumn(
+                                            shop = shop,
+                                            people = peopleByShop[shop.shopId].orEmpty(),
+                                            shopList = shopList,
+                                            personViewModel = personViewModel,
+                                            filteredPeople = filteredPeople
+                                        )
+                                    }
+                                    // Note: No spacer for empty positions in columns to keep compact layout
                                 }
                             }
                         }
@@ -1202,76 +1054,116 @@ class MainActivity : ComponentActivity() {
                 SettingsDialog(
                     onDismiss = { showSettingsDialog = false },
                     onAddPerson = {
-                        showSettingsDialog = true
+                        showSettingsDialog = false  // Change this to false
                         showAddPersonDialog = true
                     },
                     onEditPerson = {
-                        showSettingsDialog = true
+                        showSettingsDialog = false  // Change this to false
                         showPersonSelectorDialog = true
                     },
                     onManageAircraft = {
-                        showSettingsDialog = true
+                        showSettingsDialog = false  // Change this to false
                         onShowAircraftManagement()
+                    },
+                    onManageShops = {  // ADD this new parameter
+                        showSettingsDialog = false
+                        showShopManagementDialog = true
                     }
                 )
+            }
 
-                // Dialog handlers - Add Person
-                if (showAddPersonDialog) {
-                    AddPersonDialog(
-                        shopList = shopList,
-                        allQualifications = allQualifications,
-                        allRanks = allRanks,
-                        allSections = allSections,
-                        onDismiss = { showAddPersonDialog = false },
-                        onSave = { newPerson ->
-                            personViewModel.insertPerson(newPerson)
-                            showAddPersonDialog = false
-                        },
-                        onSaveAndContinue = { newPerson ->
-                            personViewModel.insertPerson(newPerson)
-                            // Keep dialog open for next entry
+            // ADD the Shop Management Dialog here (outside the Settings Dialog block)
+            if (showShopManagementDialog) {
+                val context = LocalContext.current
+                ShopManagementDialog(
+                    allShops = allShops,
+                    onDismiss = { showShopManagementDialog = false },
+                    onAddShop = { shop ->
+                        shopViewModel.addShop(shop) { result ->
+                            result.onSuccess {
+                                Toast.makeText(context, "Shop '${shop.name}' added successfully", Toast.LENGTH_SHORT).show()
+                            }.onFailure { error ->
+                                Toast.makeText(context, "Error adding shop: ${error.message}", Toast.LENGTH_LONG).show()
+                            }
                         }
-                    )
-                }
-
-                // Dialog handlers - Person Selector
-                if (showPersonSelectorDialog) {
-                    PersonSelectorDialog(
-                        people = people,
-                        shopList = shopList,
-                        onPersonSelected = { person ->
-                            selectedPersonToEdit = person
-                            showPersonSelectorDialog = false
-                        },
-                        onDismiss = { showPersonSelectorDialog = false }
-                    )
-                }
-
-                // Dialog handlers - Edit Person
-                selectedPersonToEdit?.let { person ->
-                    EditPersonDialog(
-                        person = person,
-                        shopList = shopList,
-                        allQualifications = allQualifications,
-                        allRanks = allRanks,
-                        allSections = allSections,
-                        onDismiss = { selectedPersonToEdit = null },
-                        onSave = { updatedPerson ->
-                            personViewModel.updatePerson(updatedPerson)
-                            selectedPersonToEdit = null
-                        },
-                        onSaveAndEditAnother = { updatedPerson ->
-                            personViewModel.updatePerson(updatedPerson)
-                            // Keep dialog open but switch to selector
-                            selectedPersonToEdit = null
-                            showPersonSelectorDialog = true
-                        },
-                        onDelete = { personToDelete ->
-                            personViewModel.deletePerson(personToDelete)
-                            selectedPersonToEdit = null
+                    },
+                    onUpdateShop = { shop ->
+                        shopViewModel.updateShop(shop) { result ->
+                            result.onSuccess {
+                                Toast.makeText(context, "Shop '${shop.name}' updated successfully", Toast.LENGTH_SHORT).show()
+                            }.onFailure { error ->
+                                Toast.makeText(context, "Error updating shop: ${error.message}", Toast.LENGTH_LONG).show()
+                            }
                         }
-                    )
-                }
+                    },
+                    onDeleteShop = { shop ->
+                        shopViewModel.deleteShop(shop) { result ->
+                            result.onSuccess {
+                                Toast.makeText(context, "Shop '${shop.name}' deleted successfully", Toast.LENGTH_SHORT).show()
+                            }.onFailure { error ->
+                                Toast.makeText(context, "Error deleting shop: ${error.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                )
+            }
+
+            // Dialog handlers - Add Person (keep these exactly as they were, outside the Settings Dialog)
+            if (showAddPersonDialog) {
+                AddPersonDialog(
+                    shopList = shopList,
+                    allQualifications = allQualifications,
+                    allRanks = allRanks,
+                    allSections = allSections,
+                    onDismiss = { showAddPersonDialog = false },
+                    onSave = { newPerson ->
+                        personViewModel.insertPerson(newPerson)
+                        showAddPersonDialog = false
+                    },
+                    onSaveAndContinue = { newPerson ->
+                        personViewModel.insertPerson(newPerson)
+                        // Keep dialog open for next entry
+                    }
+                )
+            }
+
+            // Dialog handlers - Person Selector (keep these exactly as they were)
+            if (showPersonSelectorDialog) {
+                PersonSelectorDialog(
+                    people = people,
+                    shopList = shopList,
+                    onPersonSelected = { person ->
+                        selectedPersonToEdit = person
+                        showPersonSelectorDialog = false
+                    },
+                    onDismiss = { showPersonSelectorDialog = false }
+                )
+            }
+
+            // Dialog handlers - Edit Person (keep these exactly as they were)
+            selectedPersonToEdit?.let { person ->
+                EditPersonDialog(
+                    person = person,
+                    shopList = shopList,
+                    allQualifications = allQualifications,
+                    allRanks = allRanks,
+                    allSections = allSections,
+                    onDismiss = { selectedPersonToEdit = null },
+                    onSave = { updatedPerson ->
+                        personViewModel.updatePerson(updatedPerson)
+                        selectedPersonToEdit = null
+                    },
+                    onSaveAndEditAnother = { updatedPerson ->
+                        personViewModel.updatePerson(updatedPerson)
+                        // Keep dialog open but switch to selector
+                        selectedPersonToEdit = null
+                        showPersonSelectorDialog = true
+                    },
+                    onDelete = { personToDelete ->
+                        personViewModel.deletePerson(personToDelete)
+                        selectedPersonToEdit = null
+                    }
+                )
             }
         }
     }

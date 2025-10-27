@@ -14,6 +14,7 @@ object AppDatabaseProvider {
                 AppDatabase::class.java,
                 "personnel_events_database"
             )
+                .addMigrations(MIGRATION_17_TO_18)
                 .fallbackToDestructiveMigration() // For dev; remove or revise for prod!
                 .build()
             INSTANCE = instance
