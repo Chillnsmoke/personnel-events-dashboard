@@ -53,7 +53,10 @@
 │   │   │   │   │   │   │   │   │   │   ├── EventHelpers.kt
 │   │   │   │   │   │   │   │   │   │   └── EventIndicator.kt
 │   │   │   │   │   │   │   │   │   ├── management/
-│   │   │   │   │   │   │   │   │   │   └── SettingsDialog.kt
+│   │   │   │   │   │   │   │   │   │   ├── AddShopDialog.kt
+│   │   │   │   │   │   │   │   │   │   ├── EditShopDialog.kt
+│   │   │   │   │   │   │   │   │   │   ├── SettingsDialog.kt
+│   │   │   │   │   │   │   │   │   │   └── ShopManagementDialog.kt
 │   │   │   │   │   │   │   │   │   ├── personnel/
 │   │   │   │   │   │   │   │   │   │   ├── AddPersonDialog.kt
 │   │   │   │   │   │   │   │   │   │   ├── EditPersonDialog.kt
@@ -75,6 +78,7 @@
 │   │   │   │   │   │   │   │   ├── EventViewModel.kt
 │   │   │   │   │   │   │   │   ├── PersonViewModel.kt
 │   │   │   │   │   │   │   │   ├── PersonViewModelFactory.kt
+│   │   │   │   │   │   │   │   ├── ShopViewModel.kt
 │   │   │   │   │   │   │   │   └── TailNumberViewModel.kt
 │   │   │   │   │   │   │   └── MainActivity.kt
 │   │   │   ├── res/
