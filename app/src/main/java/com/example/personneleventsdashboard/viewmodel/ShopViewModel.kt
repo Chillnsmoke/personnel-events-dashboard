@@ -119,12 +119,12 @@ class ShopViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Delete a shop (soft delete - set inactive)
+     * Delete a shop (hard delete)
      */
     fun deleteShop(shop: Shop, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
             try {
-                shopDao.deactivateShop(shop.shopId)
+                shopDao.deleteShop(shop) // Hard delete - completely removes the record
                 onResult(Result.success(Unit))
             } catch (e: Exception) {
                 onResult(Result.failure(e))

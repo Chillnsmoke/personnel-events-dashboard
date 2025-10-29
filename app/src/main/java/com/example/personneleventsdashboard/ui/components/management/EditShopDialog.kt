@@ -2,220 +2,308 @@ package com.example.personneleventsdashboard.ui.components.management
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.personneleventsdashboard.model.Person
 import com.example.personneleventsdashboard.model.Shop
-import com.example.personneleventsdashboard.ui.theme.Charcoal
-import com.example.personneleventsdashboard.ui.theme.DarkBlue
-import com.example.personneleventsdashboard.ui.theme.Orange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditShopDialog(
-    shop: Shop,
     allShops: List<Shop>,
+    allPersonnel: List<Person>, // Add this parameter to check personnel assignments
     onDismiss: () -> Unit,
     onUpdate: (Shop) -> Unit,
     onDelete: (Shop) -> Unit
 ) {
-    var shopName by remember { mutableStateOf(shop.name) }
-    var shopChief by remember { mutableStateOf(shop.chief ?: "") }
-    var shopColor by remember { mutableStateOf(shop.color ?: "") }
+    var selectedShop by remember { mutableStateOf<Shop?>(null) }
+    var shopName by remember { mutableStateOf("") }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var shopDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Check if shop has personnel assigned (you can implement this check if needed)
-    val hasPersonnel = remember { false } // Placeholder
+    val activeShops = allShops.filter { it.isActive }
 
-    AlertDialog(
+    // Check if selected shop has personnel assigned
+    val hasPersonnelAssigned = selectedShop?.let { shop ->
+        allPersonnel.any { person -> person.shopId == shop.shopId }
+    } ?: false
+
+    // Update shop name when shop is selected
+    LaunchedEffect(selectedShop) {
+        shopName = selectedShop?.name ?: ""
+    }
+
+    // Using Dialog instead of AlertDialog for full width control - matches AddShopDialog
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Edit Shop",
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                color = Charcoal
-            )
-        },
-        text = {
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false  // This removes ALL width constraints!
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .width(450.dp)
+                .height(420.dp)  // Slightly taller than AddShopDialog for additional fields
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),  // Same as AddShopDialog
+            colors = CardDefaults.cardColors(containerColor = Color.Black),  // Same black background
+            border = BorderStroke(2.dp, Color.Gray)  // Same border style
+        ) {
             Column(
                 modifier = Modifier
-                    .width(400.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxSize()
+                    .padding(24.dp),  // Same padding as AddShopDialog
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Shop Name
-                OutlinedTextField(
-                    value = shopName,
-                    onValueChange = { shopName = it },
-                    label = { Text("Shop Name *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                // Title - matches AddShopDialog text styling
+                Text(
+                    "Edit Shop",
+                    fontSize = 18.sp,  // Same as AddShopDialog
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray  // Same gray color for headers
                 )
 
-                // Shop Chief
-                OutlinedTextField(
-                    value = shopChief,
-                    onValueChange = { shopChief = it },
-                    label = { Text("Shop Chief (Optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                // Shop Color
-                OutlinedTextField(
-                    value = shopColor,
-                    onValueChange = { shopColor = it },
-                    label = { Text("Color (Optional, e.g., #FF5722)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text("#FF5722") }
-                )
-
-                // Current Position Display
+                // Content area with same Card styling as AddShopDialog
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.Blue.copy(alpha = 0.1f)
+                        containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as AddShopDialog
                     )
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            "Current Position:",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            if (shop.displayPosition != null)
-                                "Position ${shop.displayPosition}"
-                            else
-                                "Not assigned to layout",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                        Text(
-                            "Use the Layout Configuration section above to change position.",
-                            fontSize = 11.sp,
-                            color = Color.Gray
-                        )
-                    }
-                }
-
-                Divider()
-
-                // Delete Shop Section
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.Red.copy(alpha = 0.1f)
-                    ),
-                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
-                ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(16.dp),  // Same padding as AddShopDialog
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Shop Selection Dropdown
                         Text(
-                            "Danger Zone",
-                            fontSize = 14.sp,
+                            "Select Shop to Edit:",
                             fontWeight = FontWeight.Bold,
-                            color = Color.Red
+                            fontSize = 16.sp,
+                            color = Color.White  // White text on black background
                         )
 
-                        OutlinedButton(
-                            onClick = { showDeleteConfirmation = true },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color.Red
-                            ),
-                            border = BorderStroke(1.dp, Color.Red),
-                            modifier = Modifier.fillMaxWidth()
+                        ExposedDropdownMenuBox(
+                            expanded = shopDropdownExpanded,
+                            onExpandedChange = { shopDropdownExpanded = !shopDropdownExpanded }
                         ) {
-                            Text("Delete Shop", fontWeight = FontWeight.Bold)
+                            OutlinedTextField(
+                                value = selectedShop?.name ?: "Select a shop...",
+                                onValueChange = { },
+                                readOnly = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = shopDropdownExpanded) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.Gray,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = shopDropdownExpanded,
+                                onDismissRequest = { shopDropdownExpanded = false }
+                            ) {
+                                activeShops.forEach { shop ->
+                                    DropdownMenuItem(
+                                        text = { Text(shop.name) },
+                                        onClick = {
+                                            selectedShop = shop
+                                            shopDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
                         }
 
-                        if (hasPersonnel) {
+                        // Shop Name Input (only shown if shop is selected)
+                        selectedShop?.let {
                             Text(
-                                "⚠️ This shop has personnel assigned. Deleting will unassign them.",
-                                fontSize = 11.sp,
-                                color = Color.Red
+                                "Rename Shop:",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color.White
+                            )
+
+                            OutlinedTextField(
+                                value = shopName,
+                                onValueChange = { shopName = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.Gray,
+                                    unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color.White,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                ),
+                                placeholder = {
+                                    Text(
+                                        "Enter new shop name...",
+                                        color = Color.Gray
+                                    )
+                                }
                             )
                         }
                     }
                 }
-            }
-        },
-        confirmButton = {
-            OutlinedButton(
-                onClick = {
-                    if (shopName.isNotBlank()) {
-                        val updatedShop = shop.copy(
-                            name = shopName.trim(),
-                            chief = if (shopChief.isBlank()) null else shopChief.trim(),
-                            color = if (shopColor.isBlank()) null else shopColor.trim()
-                            // displayPosition remains unchanged - managed via layout section
-                        )
-                        onUpdate(updatedShop)
+
+                Spacer(modifier = Modifier.weight(1f))  // Push buttons to bottom
+
+                // Bottom button row - matches AddShopDialog exactly
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Cancel button (left)
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                        border = BorderStroke(2.dp, Color.Gray),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel")
                     }
-                },
-                enabled = shopName.isNotBlank(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = DarkBlue.copy(alpha = 0.1f),
-                    contentColor = DarkBlue
-                ),
-                border = BorderStroke(2.dp, DarkBlue)
-            ) {
-                Text("Update Shop", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color.Gray
-                )
-            ) {
-                Text("Cancel")
+
+                    // Delete button (center) - only enabled if shop selected and no personnel
+                    OutlinedButton(
+                        onClick = { showDeleteConfirmation = true },
+                        enabled = selectedShop != null && !hasPersonnelAssigned,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (hasPersonnelAssigned) Color.Gray.copy(alpha = 0.2f) else Color.Red.copy(alpha = 0.1f),
+                            contentColor = if (hasPersonnelAssigned) Color.Gray else Color.Red,
+                            disabledContainerColor = Color.Gray.copy(alpha = 0.2f),
+                            disabledContentColor = Color.Gray
+                        ),
+                        border = BorderStroke(2.dp, if (hasPersonnelAssigned) Color.Gray else Color.Red),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Delete", fontWeight = FontWeight.Bold)
+                    }
+
+                    // Update button (right)
+                    OutlinedButton(
+                        onClick = {
+                            selectedShop?.let { shop ->
+                                if (shopName.trim().isNotEmpty() && shopName.trim() != shop.name) {
+                                    val updatedShop = shop.copy(name = shopName.trim())
+                                    onUpdate(updatedShop)
+                                    onDismiss()
+                                }
+                            }
+                        },
+                        enabled = selectedShop != null && shopName.trim().isNotEmpty() && shopName.trim() != selectedShop?.name,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.4f),
+                            contentColor = Color.Black,
+                            disabledContainerColor = Color.Gray.copy(alpha = 0.2f),
+                            disabledContentColor = Color.Gray
+                        ),
+                        border = BorderStroke(2.dp, Color.Gray),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Update", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Warning text for personnel assignment
+                selectedShop?.let {
+                    if (hasPersonnelAssigned) {
+                        Text(
+                            "⚠️ Cannot delete: This shop has personnel assigned",
+                            fontSize = 12.sp,
+                            color = Color.Red,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
         }
-    )
+    }
 
     // Delete Confirmation Dialog
-    if (showDeleteConfirmation) {
-        AlertDialog(
+    if (showDeleteConfirmation && selectedShop != null) {
+        Dialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Confirm Delete") },
-            text = {
-                Text("Are you sure you want to delete \"${shop.name}\"? This action cannot be undone.")
-            },
-            confirmButton = {
-                OutlinedButton(
-                    onClick = {
-                        onDelete(shop)
-                        showDeleteConfirmation = false
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.Red
-                    ),
-                    border = BorderStroke(1.dp, Color.Red)
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .width(400.dp)
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                border = BorderStroke(2.dp, Color.Red)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("Delete", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showDeleteConfirmation = false }
-                ) {
-                    Text("Cancel")
+                    Text(
+                        "Confirm Delete",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
+                    )
+
+                    Text(
+                        "Are you sure you want to delete \"${selectedShop!!.name}\"?\n\nThis action cannot be undone.",
+                        fontSize = 14.sp,
+                        color = Color.White
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showDeleteConfirmation = false },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                            border = BorderStroke(2.dp, Color.Gray),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                selectedShop?.let { onDelete(it) }
+                                showDeleteConfirmation = false
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Red.copy(alpha = 0.2f),
+                                contentColor = Color.Red
+                            ),
+                            border = BorderStroke(2.dp, Color.Red),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Delete", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 }

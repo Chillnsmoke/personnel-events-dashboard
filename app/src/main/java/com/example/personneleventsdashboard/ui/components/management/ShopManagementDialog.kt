@@ -33,11 +33,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.times
 import androidx.compose.ui.window.Popup
+import com.example.personneleventsdashboard.model.Person
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopManagementDialog(
     allShops: List<Shop>,
+    allPersonnel: List<Person>,
     onDismiss: () -> Unit,
     onAddShop: (Shop) -> Unit,
     onUpdateShop: (Shop) -> Unit,
@@ -74,6 +77,24 @@ fun ShopManagementDialog(
             }
         }
     }
+
+//    // Add this debugging function
+//    LaunchedEffect(allShops) {
+//        println("=== SHOP DEBUG ===")
+//        allShops.forEach { shop ->
+//            println("${shop.name}: active=${shop.isActive}, pos=${shop.displayPosition}")
+//        }
+//        println("==================")
+//    }
+//
+//    LaunchedEffect(Unit) {
+//        // One-time cleanup of the broken "Testes 2 Bitches" entries
+//        val brokenShops = allShops.filter { !it.isActive && it.displayPosition != null }
+//        brokenShops.forEach { brokenShop ->
+//            println("Cleaning up: ${brokenShop.name}")
+//            onDeleteShop(brokenShop) // Hard delete
+//        }
+//    }
 
     // Using Dialog instead of AlertDialog for full width control
     Dialog(
@@ -303,11 +324,13 @@ fun ShopManagementDialog(
 
     // Edit Shop Dialog (placeholder for now)
     if (showEditShopDialog) {
-        // TODO: You'll add the EditShopDialog here after appearance is dialed in
-        // For now, just close the dialog
-        LaunchedEffect(showEditShopDialog) {
-            showEditShopDialog = false
-        }
+        EditShopDialog(
+            allShops = allShops,
+            allPersonnel = allPersonnel, // List<Person> from your database
+            onDismiss = { showEditShopDialog = false },
+            onUpdate = onUpdateShop,
+            onDelete = onDeleteShop
+        )
     }
 }
 

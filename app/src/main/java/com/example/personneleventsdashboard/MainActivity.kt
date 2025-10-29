@@ -1075,8 +1075,10 @@ class MainActivity : ComponentActivity() {
             // ADD the Shop Management Dialog here (outside the Settings Dialog block)
             if (showShopManagementDialog) {
                 val context = LocalContext.current
+                val allPersonnel by personViewModel.people.collectAsState()
                 ShopManagementDialog(
                     allShops = allShops,
+                    allPersonnel = allPersonnel,
                     onDismiss = { showShopManagementDialog = false },
                     onAddShop = { shop ->
                         shopViewModel.addShop(shop) { result ->
