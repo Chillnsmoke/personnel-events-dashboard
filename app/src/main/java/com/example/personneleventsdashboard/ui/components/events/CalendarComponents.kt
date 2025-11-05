@@ -213,13 +213,43 @@ fun CalendarWeekRow(
                 week.any { day -> day.date >= event.startDate && day.date <= event.endDate } // Overlaps with this week
     }.distinctBy { it.eventId }
 
-    // Assign slots to multi-day events (bottom slots first: 4, 3, 2, 1, 0)
+    // FIXED: Assign slots to multi-day events based on actual availability for their specific date ranges
     val multiDayEventSlots = mutableMapOf<Int, Int>() // eventId to slot number
-    var nextSlot = 4
+
+    // For each event, find the lowest available slot (starting from bottom: slot 4)
     weekMultiDayEvents.forEach { event ->
-        if (nextSlot >= 0) {
-            multiDayEventSlots[event.eventId] = nextSlot
-            nextSlot--
+        val eventDates = week.filter { day ->
+            day.date >= event.startDate && day.date <= event.endDate
+        }.map { it.date }
+
+        // Check each slot from bottom to top (4 to 0) to find the first available
+        var assignedSlot = -1
+        for (slot in 4 downTo 0) {
+            var slotAvailable = true
+
+            // Check if this slot is occupied by any other event that overlaps our date range
+            for (otherEvent in weekMultiDayEvents) {
+                if (otherEvent.eventId != event.eventId && multiDayEventSlots[otherEvent.eventId] == slot) {
+                    // Check if this other event overlaps with any of our event's dates
+                    val otherEventDates = week.filter { day ->
+                        day.date >= otherEvent.startDate && day.date <= otherEvent.endDate
+                    }.map { it.date }
+
+                    if (eventDates.any { date -> otherEventDates.contains(date) }) {
+                        slotAvailable = false
+                        break
+                    }
+                }
+            }
+
+            if (slotAvailable) {
+                assignedSlot = slot
+                break
+            }
+        }
+
+        if (assignedSlot != -1) {
+            multiDayEventSlots[event.eventId] = assignedSlot
         }
     }
 
