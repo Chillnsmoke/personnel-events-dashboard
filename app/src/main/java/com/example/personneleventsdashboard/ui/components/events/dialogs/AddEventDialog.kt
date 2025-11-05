@@ -3,11 +3,16 @@ package com.example.personneleventsdashboard.ui.components.events.dialogs
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,11 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.personneleventsdashboard.model.Event
 import com.example.personneleventsdashboard.model.EventType
 import com.example.personneleventsdashboard.model.TailNumber
-import com.example.personneleventsdashboard.ui.theme.Charcoal
-import com.example.personneleventsdashboard.ui.theme.Forest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -61,71 +66,115 @@ fun AddEventDialog(
             )
         }
         else -> {
-            // Main choice dialog
-            AlertDialog(
+            // Main choice dialog - Using Dialog instead of AlertDialog for full width control
+            Dialog(
                 onDismissRequest = onDismiss,
-                title = {
-                    Text(
-                        "Add Event - ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
-                    )
-                },
-                text = {
+                properties = DialogProperties(
+                    dismissOnBackPress = true,
+                    dismissOnClickOutside = true,
+                    usePlatformDefaultWidth = false  // This removes ALL width constraints!
+                )
+            ) {
+                Card(
+                    modifier = Modifier
+                        .width(450.dp)  // Same width as other dialogs
+                        .height(400.dp), // Adequate height for title and buttons
+                    shape = RoundedCornerShape(16.dp),  // Same as other dialogs
+                    colors = CardDefaults.cardColors(containerColor = Color.Black),  // Same black background
+                    border = BorderStroke(2.dp, Color.Gray)  // Same border style
+                ) {
                     Column(
-                        modifier = Modifier.width(400.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),  // Same padding as other dialogs
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Title - matches other dialogs
                         Text(
-                            "What type of event would you like to add?",
-                            fontSize = 18.sp,
-                            color = Color.Gray
+                            "Add Event - ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                            fontSize = 18.sp,  // Same as other dialog titles
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray  // Same gray color for headers
                         )
 
-                        // Quick Event Button
-                        OutlinedButton(
-                            onClick = { showPresetEvents = true },
+                        // Content area with same Card styling as other dialogs
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(60.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.DarkGray.copy(alpha = 0.2f),
-                                contentColor = Charcoal
-                            ),
-                            border = BorderStroke(2.dp, Charcoal.copy(alpha = 0.4f))
+                                .weight(1f),  // Take most of the space
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                            )
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Quick Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text("Aircraft Wash, Inspection, etc.", fontSize = 16.sp)
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(
+                                    "What type of event would you like to add?",
+                                    fontSize = 16.sp,
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                // Quick Event Button
+                                OutlinedButton(
+                                    onClick = { showPresetEvents = true },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(70.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.LightGray.copy(alpha = 0.2f),
+                                        contentColor = Color.White
+                                    ),
+                                    border = BorderStroke(2.dp, Color.Gray)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Quick Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                        Text("Aircraft Wash, Inspection, etc.", fontSize = 14.sp, color = Color.LightGray)
+                                    }
+                                }
+
+                                // Custom Event Button
+                                OutlinedButton(
+                                    onClick = { showCustomEvent = true },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(70.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.LightGray.copy(alpha = 0.2f),
+                                        contentColor = Color.White
+                                    ),
+                                    border = BorderStroke(2.dp, Color.Gray)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Custom Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                        Text("Create your own event", fontSize = 14.sp, color = Color.LightGray)
+                                    }
+                                }
                             }
                         }
 
-                        // Custom Event Button
-                        OutlinedButton(
-                            onClick = { showCustomEvent = true },
+                        // Bottom button row - matches other dialogs
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(60.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Gray.copy(alpha = 0.3f),
-                                contentColor = Forest
-                            ),
-                            border = BorderStroke(2.dp, Forest.copy(alpha = 0.4f))
+                                .padding(top = 16.dp),
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Custom Event", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text("Create your own event", fontSize = 16.sp)
+                            // Cancel button - same styling as other dialogs
+                            OutlinedButton(
+                                onClick = onDismiss,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                                border = BorderStroke(2.dp, Color.Gray),
+                                modifier = Modifier.width(120.dp)
+                            ) {
+                                Text("Cancel", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
-                },
-                confirmButton = {},
-                dismissButton = {
-                    OutlinedButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
                 }
-            )
+            }
         }
     }
 }

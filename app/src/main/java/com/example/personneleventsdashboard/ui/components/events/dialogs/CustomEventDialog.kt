@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -12,15 +13,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.personneleventsdashboard.model.Event
 import com.example.personneleventsdashboard.model.TailNumber
 import java.time.LocalDate
@@ -92,297 +96,393 @@ fun CustomEventDialog(
         )
     }
 
-    AlertDialog(
+    // Using Dialog instead of AlertDialog for full width control - matches other dialogs
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Custom Event - ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-        },
-        text = {
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false  // This removes ALL width constraints!
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .width(500.dp)  // Same width as PresetEventDialog
+                .height(700.dp), // Same height as PresetEventDialog
+            shape = RoundedCornerShape(16.dp),  // Same as other dialogs
+            colors = CardDefaults.cardColors(containerColor = Color.Black),  // Same black background
+            border = BorderStroke(2.dp, Color.Gray)  // Same border style
+        ) {
             Column(
-                modifier = Modifier.width(500.dp), // Increased width to match PresetEventDialog
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),  // Same padding as other dialogs
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Event Title") },
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description (Optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 20.sp),
-                    maxLines = 3
-                )
-
-                Divider()
-
-                // Aircraft tail number selection (same as PresetEventDialog)
+                // Title - matches other dialogs
                 Text(
-                    fontSize = 18.sp,
-                    text = "Select aircraft:",
-                    fontWeight = FontWeight.Bold
+                    "Custom Event - ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                    fontSize = 18.sp,  // Same as other dialog titles
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray  // Same gray color for headers
                 )
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier.height(100.dp),
-                    contentPadding = PaddingValues(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                // Scrollable content area
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(tailNumbers) { tailNumber ->
-                        val isSelected = selectedTailNumber == tailNumber.number && !useCustomTailNumber
-
-                        OutlinedButton(
-                            onClick = {
-                                if (isSelected) {
-                                    // If already selected, clear it
-                                    selectedTailNumber = null
-                                    useCustomTailNumber = false
-                                    customTailNumber = ""
-                                } else {
-                                    // If not selected, select it
-                                    selectedTailNumber = tailNumber.number
-                                    useCustomTailNumber = false
-                                    customTailNumber = ""
-                                }
-                            },
-                            modifier = Modifier.height(40.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isSelected) Color.Blue.copy(alpha = 0.1f) else Color.White,
-                                contentColor = if (isSelected) Color.Blue else Color.Black
-                            ),
-                            border = BorderStroke(
-                                2.dp,
-                                if (isSelected) Color.Blue else Color.Gray
-                            )
-                        ) {
-                            Text(
-                                text = tailNumber.number,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 18.sp
-                            )
-                        }
-                    }
-                }
-
-                // Custom tail number option
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = useCustomTailNumber,
-                        onCheckedChange = {
-                            useCustomTailNumber = it
-                            if (it) {
-                                selectedTailNumber = null
-                            } else {
-                                customTailNumber = ""
-                            }
-                        }
-                    )
-                    Text(
-                        text = "Other:",
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                        fontWeight = FontWeight.Medium
-                    )
-                    OutlinedTextField(
-                        value = customTailNumber,
-                        onValueChange = {
-                            customTailNumber = it
-                            if (it.isNotBlank()) {
-                                useCustomTailNumber = true
-                                selectedTailNumber = null
-                            }
-                        },
-                        placeholder = {
-                            Text(
-                                text = "Enter tail number",
-                                fontSize = 16.sp
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = useCustomTailNumber || customTailNumber.isNotBlank()
-                    )
-                }
-
-                Divider()
-
-                // Multi-day event checkbox
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isMultiDay,
-                        onCheckedChange = {
-                            isMultiDay = it
-                            if (!it) {
-                                startDate = selectedDate
-                                endDate = selectedDate
-                            }
-                        }
-                    )
-                    Text(
-                        text = "Multi-day event",
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(start = 8.dp),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // Date selection (only show when multi-day is checked)
-                if (isMultiDay) {
+                    // Title and Description Section
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.Blue.copy(alpha = 0.05f)
-                        ),
-                        border = BorderStroke(1.dp, Color.Blue.copy(alpha = 0.3f))
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                        )
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(
-                                text = "Date Range",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Blue
+                            OutlinedTextField(
+                                value = title,
+                                onValueChange = { title = it },
+                                label = { Text("Event Title", color = Color.Gray) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.Gray,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedLabelColor = Color.Gray,
+                                    unfocusedLabelColor = Color.Gray,
+                                    cursorColor = Color.White,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
                             )
 
-                            // Start Date Picker Button
-                            OutlinedButton(
-                                onClick = { showStartDatePicker = true },
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = { description = it },
+                                label = { Text("Description (Optional)", color = Color.Gray) },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black
-                                ),
-                                border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text("Start Date", fontSize = 14.sp, color = Color.Gray)
-                                        Text(
-                                            startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                    Text("📅", fontSize = 20.sp)
-                                }
-                            }
-
-                            // End Date Picker Button
-                            OutlinedButton(
-                                onClick = { showEndDatePicker = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black
-                                ),
-                                border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text("End Date", fontSize = 14.sp, color = Color.Gray)
-                                        Text(
-                                            endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                    Text("📅", fontSize = 20.sp)
-                                }
-                            }
-
-                            // Duration display
-                            val duration = ChronoUnit.DAYS.between(startDate, endDate) + 1
-                            Text(
-                                "Duration: $duration day${if (duration != 1L) "s" else ""}",
-                                fontSize = 14.sp,
-                                color = Color.Gray,
-                                fontStyle = FontStyle.Italic,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
+                                maxLines = 3,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.Gray,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedLabelColor = Color.Gray,
+                                    unfocusedLabelColor = Color.Gray,
+                                    cursorColor = Color.White,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
                             )
                         }
                     }
-                } else {
-                    // Single day event info
-                    Text(
-                        "Single day event on ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        fontStyle = FontStyle.Italic
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Row(
-                modifier = Modifier.width(500.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
-                ) {
-                    Text("Back")
-                }
 
-                Button(
-                    onClick = {
-                        val finalStartDate = if (isMultiDay) startDate else selectedDate
-                        val finalEndDate = if (isMultiDay) endDate else selectedDate
-                        val finalTailNumber = when {
-                            useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
-                            selectedTailNumber != null -> selectedTailNumber
-                            else -> null
-                        }
-
-                        val newEvent = Event(
-                            title = title.trim(),
-                            description = description.takeIf { it.isNotBlank() },
-                            startDate = finalStartDate,
-                            endDate = finalEndDate,
-                            aircraftTailNumber = finalTailNumber,
-                            status = "Scheduled"
+                    // Aircraft Selection Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
                         )
-                        onEventAdded(newEvent)
-                    },
-                    enabled = isFormValid,
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Green.copy(alpha = 0.8f)
-                    )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "Select aircraft:",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                modifier = Modifier.height(100.dp),
+                                contentPadding = PaddingValues(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                items(tailNumbers) { tailNumber ->
+                                    val isSelected = selectedTailNumber == tailNumber.number && !useCustomTailNumber
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            if (isSelected) {
+                                                // If already selected, clear it
+                                                selectedTailNumber = null
+                                                useCustomTailNumber = false
+                                                customTailNumber = ""
+                                            } else {
+                                                // If not selected, select it
+                                                selectedTailNumber = tailNumber.number
+                                                useCustomTailNumber = false
+                                                customTailNumber = ""
+                                            }
+                                        },
+                                        modifier = Modifier.height(40.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = if (isSelected) Color.LightGray.copy(alpha = 0.3f) else Color.Transparent,
+                                            contentColor = if (isSelected) Color.White else Color.LightGray
+                                        ),
+                                        border = BorderStroke(
+                                            2.dp,
+                                            if (isSelected) Color.White else Color.Gray
+                                        )
+                                    ) {
+                                        Text(
+                                            text = tailNumber.number,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Custom tail number option
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = useCustomTailNumber,
+                                    onCheckedChange = {
+                                        useCustomTailNumber = it
+                                        if (it) {
+                                            selectedTailNumber = null
+                                        } else {
+                                            customTailNumber = ""
+                                        }
+                                    }
+                                )
+                                Text(
+                                    text = "Other:",
+                                    fontSize = 16.sp,
+                                    modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                                OutlinedTextField(
+                                    value = customTailNumber,
+                                    onValueChange = {
+                                        customTailNumber = it
+                                        if (it.isNotBlank()) {
+                                            useCustomTailNumber = true
+                                            selectedTailNumber = null
+                                        }
+                                    },
+                                    placeholder = { Text("Enter tail number", color = Color.Gray) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    enabled = useCustomTailNumber || customTailNumber.isNotBlank(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedBorderColor = Color.Gray,
+                                        unfocusedBorderColor = Color.Gray,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        disabledTextColor = Color.Gray,
+                                        disabledBorderColor = Color.Gray.copy(alpha = 0.5f)
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Multi-day Event Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Multi-day event checkbox
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isMultiDay,
+                                    onCheckedChange = {
+                                        isMultiDay = it
+                                        if (!it) {
+                                            startDate = selectedDate
+                                            endDate = selectedDate
+                                        }
+                                    }
+                                )
+                                Text(
+                                    text = "Multi-day event",
+                                    fontSize = 16.sp,
+                                    modifier = Modifier.padding(start = 8.dp),
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+
+                            // Date selection (only show when multi-day is checked)
+                            if (isMultiDay) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.LightGray.copy(alpha = 0.15f)
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Gray)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Date Range",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+
+                                        // Start Date Picker Button
+                                        OutlinedButton(
+                                            onClick = { showStartDatePicker = true },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = Color.Transparent,
+                                                contentColor = Color.White
+                                            ),
+                                            border = BorderStroke(1.dp, Color.Gray)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text("Start Date", fontSize = 14.sp, color = Color.Gray)
+                                                    Text(
+                                                        startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                                Text("📅", fontSize = 18.sp)
+                                            }
+                                        }
+
+                                        // End Date Picker Button
+                                        OutlinedButton(
+                                            onClick = { showEndDatePicker = true },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = Color.Transparent,
+                                                contentColor = Color.White
+                                            ),
+                                            border = BorderStroke(1.dp, Color.Gray)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text("End Date", fontSize = 14.sp, color = Color.Gray)
+                                                    Text(
+                                                        endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                                Text("📅", fontSize = 18.sp)
+                                            }
+                                        }
+
+                                        // Duration display
+                                        val duration = ChronoUnit.DAYS.between(startDate, endDate) + 1
+                                        Text(
+                                            "Duration: $duration day${if (duration != 1L) "s" else ""}",
+                                            fontSize = 14.sp,
+                                            color = Color.Gray,
+                                            fontStyle = FontStyle.Italic,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Single day event info
+                                Text(
+                                    "Single day event on ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray,
+                                    fontStyle = FontStyle.Italic
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Bottom button row - matches other dialogs
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Add Event")
+                    // Back button
+                    OutlinedButton(
+                        onClick = onBack,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                        border = BorderStroke(2.dp, Color.Gray),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Back", fontWeight = FontWeight.Bold)
+                    }
+
+                    // Add Event button
+                    OutlinedButton(
+                        onClick = {
+                            val finalStartDate = if (isMultiDay) startDate else selectedDate
+                            val finalEndDate = if (isMultiDay) endDate else selectedDate
+                            val finalTailNumber = when {
+                                useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
+                                selectedTailNumber != null -> selectedTailNumber
+                                else -> null
+                            }
+
+                            val newEvent = Event(
+                                title = title.trim(),
+                                description = description.takeIf { it.isNotBlank() },
+                                startDate = finalStartDate,
+                                endDate = finalEndDate,
+                                aircraftTailNumber = finalTailNumber,
+                                status = "Scheduled"
+                            )
+                            onEventAdded(newEvent)
+                        },
+                        enabled = isFormValid,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.2f),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color.Gray.copy(alpha = 0.2f),
+                            disabledContentColor = Color.Gray
+                        ),
+                        border = BorderStroke(2.dp, Color.Gray),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Add Event", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
-        },
-        dismissButton = {}
-    )
+        }
+    }
 }

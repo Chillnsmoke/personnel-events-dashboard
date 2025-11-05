@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,17 +14,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,11 +40,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.personneleventsdashboard.model.Event
 import com.example.personneleventsdashboard.model.EventType
 import com.example.personneleventsdashboard.model.TailNumber
 import com.example.personneleventsdashboard.ui.components.events.getEventIcon
-import com.example.personneleventsdashboard.ui.theme.Orange
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -120,467 +123,608 @@ fun EditEventDialog(
         )
     }
 
-    // Delete confirmation dialog
+    // Delete confirmation dialog - Updated to match styling
     if (showDeleteConfirmation) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = {
-                Text(
-                    "Delete Event",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Red
-                )
-            },
-            text = {
-                Text(
-                    "Are you sure you want to delete \"${event.title}\"? This action cannot be undone.",
-                    fontSize = 16.sp
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onEventDeleted(event)
-                        showDeleteConfirmation = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
-                    )
-                ) {
-                    Text("Delete", color = Color.White)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showDeleteConfirmation = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Main edit dialog
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(
-                modifier = Modifier.width(500.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .width(400.dp)
+                    .height(250.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                border = BorderStroke(2.dp, Color.Gray)
             ) {
-                Text(
-                    "Edit Event",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp
-                )
-
-                OutlinedButton(
-                    onClick = { showDeleteConfirmation = true },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Red.copy(alpha = 0.1f),
-                        contentColor = Color.Red
-                    ),
-                    border = BorderStroke(2.dp, Color.Red)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("Delete", fontWeight = FontWeight.Bold)
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.width(500.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Event Title
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Event Title") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                // Event Type (if this was a preset event)
-                if (event.eventTypeId != null) {
-                    Text("Event Type:", fontWeight = FontWeight.Bold)
-                    Box {
-                        OutlinedButton(
-                            onClick = { showEventTypeDropdown = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.White,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    selectedEventType?.let { eventType ->
-                                        Text(
-                                            text = getEventIcon(eventType.iconName),
-                                            fontSize = 16.sp,
-                                            modifier = Modifier.padding(end = 8.dp)
-                                        )
-                                        Text(eventType.name)
-                                    } ?: Text("Select Event Type")
-                                }
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = showEventTypeDropdown,
-                            onDismissRequest = { showEventTypeDropdown = false }
-                        ) {
-                            eventTypes.filter { it.isPreset }.forEach { eventType ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        selectedEventType = eventType
-                                        title = eventType.name
-                                        showEventTypeDropdown = false
-                                    },
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = getEventIcon(eventType.iconName),
-                                                fontSize = 16.sp,
-                                                modifier = Modifier.padding(end = 8.dp)
-                                            )
-                                            Text(eventType.name)
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Description
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
-
-                Divider()
-
-                // Aircraft tail number selection with toggle clear
-                Text("Select aircraft:", fontWeight = FontWeight.Bold)
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier.height(100.dp),
-                    contentPadding = PaddingValues(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    items(tailNumbers) { tailNumber ->
-                        val isSelected = selectedTailNumber == tailNumber.number && !useCustomTailNumber
-
-                        OutlinedButton(
-                            onClick = {
-                                if (isSelected) {
-                                    // If already selected, clear it
-                                    selectedTailNumber = null
-                                    useCustomTailNumber = false
-                                    customTailNumber = ""
-                                } else {
-                                    // If not selected, select it
-                                    selectedTailNumber = tailNumber.number
-                                    useCustomTailNumber = false
-                                    customTailNumber = ""
-                                }
-                            },
-                            modifier = Modifier.height(40.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isSelected) Color.Blue.copy(alpha = 0.1f) else Color.White,
-                                contentColor = if (isSelected) Color.Blue else Color.Black
-                            ),
-                            border = BorderStroke(
-                                2.dp,
-                                if (isSelected) Color.Blue else Color.Gray
-                            )
-                        ) {
-                            Text(
-                                text = tailNumber.number,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-
-                // Custom tail number option
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = useCustomTailNumber,
-                        onCheckedChange = {
-                            useCustomTailNumber = it
-                            if (it) {
-                                selectedTailNumber = null
-                            } else {
-                                customTailNumber = ""
-                            }
-                        }
-                    )
                     Text(
-                        text = "Other:",
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                        fontWeight = FontWeight.Medium
+                        "Delete Event",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
                     )
-                    OutlinedTextField(
-                        value = customTailNumber,
-                        onValueChange = {
-                            customTailNumber = it
-                            if (it.isNotBlank()) {
-                                useCustomTailNumber = true
-                                selectedTailNumber = null
-                            }
-                        },
-                        placeholder = { Text("Enter tail number") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = useCustomTailNumber || customTailNumber.isNotBlank()
-                    )
-                }
 
-                Divider()
-
-                // Status
-                Text("Status:", fontWeight = FontWeight.Bold)
-                Box {
-                    OutlinedButton(
-                        onClick = { showStatusDropdown = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = when (selectedStatus) {
-                                "Complete" -> Color.Green.copy(alpha = 0.1f)
-                                "In Progress" -> Orange.copy(alpha = 0.1f)
-                                "Cancelled" -> Color.Red.copy(alpha = 0.1f)
-                                else -> Color.White
-                            },
-                            contentColor = when (selectedStatus) {
-                                "Complete" -> Color.Green
-                                "In Progress" -> Orange
-                                "Cancelled" -> Color.Red
-                                else -> Color.Black
-                            }
-                        )
-                    ) {
-                        Text(selectedStatus)
-                    }
-
-                    DropdownMenu(
-                        expanded = showStatusDropdown,
-                        onDismissRequest = { showStatusDropdown = false }
-                    ) {
-                        statusOptions.forEach { status ->
-                            DropdownMenuItem(
-                                onClick = {
-                                    selectedStatus = status
-                                    showStatusDropdown = false
-                                },
-                                text = {
-                                    Text(
-                                        status,
-                                        color = when (status) {
-                                            "Complete" -> Color.Green
-                                            "In Progress" -> Orange
-                                            "Cancelled" -> Color.Red
-                                            else -> Color.Black
-                                        }
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Divider()
-
-                // Multi-day event checkbox
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isMultiDay,
-                        onCheckedChange = {
-                            isMultiDay = it
-                            if (!it) {
-                                endDate = startDate
-                            }
-                        }
-                    )
-                    Text(
-                        text = "Multi-day event",
-                        modifier = Modifier.padding(start = 8.dp),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // Date editing
-                if (isMultiDay) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.Blue.copy(alpha = 0.05f)
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)
+                        )
+                    ) {
+                        Text(
+                            "Are you sure you want to delete \"${event.title}\"? This action cannot be undone.",
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showDeleteConfirmation = false },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                            border = BorderStroke(2.dp, Color.Gray),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel", fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                onEventDeleted(event)
+                                showDeleteConfirmation = false
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Red.copy(alpha = 0.2f),
+                                contentColor = Color.Red
+                            ),
+                            border = BorderStroke(2.dp, Color.Red),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Delete", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Main edit dialog - Using Dialog instead of AlertDialog for full width control
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false  // This removes ALL width constraints!
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .width(500.dp)  // Same width as other event dialogs
+                .height(850.dp), // Taller for all content
+            shape = RoundedCornerShape(16.dp),  // Same as other dialogs
+            colors = CardDefaults.cardColors(containerColor = Color.Black),  // Same black background
+            border = BorderStroke(2.dp, Color.Gray)  // Same border style
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),  // Same padding as other dialogs
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Title row with Delete button - matches other dialogs
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Edit Event",
+                        fontSize = 18.sp,  // Same as other dialog titles
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray  // Same gray color for headers
+                    )
+
+                    OutlinedButton(
+                        onClick = { showDeleteConfirmation = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.Red.copy(alpha = 0.2f),
+                            contentColor = Color.Red
                         ),
-                        border = BorderStroke(1.dp, Color.Blue.copy(alpha = 0.3f))
+                        border = BorderStroke(2.dp, Color.Red),
+                        contentPadding = PaddingValues(8.dp),
+                        modifier = Modifier.width(100.dp)
+                    ) {
+                        Text("Delete", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+
+                // Scrollable content area
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Basic Information Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                        )
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = title,
+                                onValueChange = { title = it },
+                                label = { Text("Event Title", color = Color.Gray) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.Gray,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedLabelColor = Color.Gray,
+                                    unfocusedLabelColor = Color.Gray,
+                                    cursorColor = Color.White,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
+                            )
+
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = { description = it },
+                                label = { Text("Description", color = Color.Gray) },
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 3,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.Gray,
+                                    unfocusedBorderColor = Color.Gray,
+                                    focusedLabelColor = Color.Gray,
+                                    unfocusedLabelColor = Color.Gray,
+                                    cursorColor = Color.White,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
+                            )
+                        }
+                    }
+
+                    // Status and Event Type Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                "Date Range",
+                                "Status & Type",
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Blue
+                                color = Color.White
                             )
 
-                            // Start Date Picker Button
-                            OutlinedButton(
-                                onClick = { showStartDatePicker = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black
-                                ),
-                                border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
-                            ) {
-                                Row(
+                            // Status dropdown
+                            Box {
+                                OutlinedButton(
+                                    onClick = { showStatusDropdown = true },
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Transparent,
+                                        contentColor = Color.White
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Gray)
                                 ) {
-                                    Column {
-                                        Text("Start Date", fontSize = 12.sp, color = Color.Gray)
-                                        Text(
-                                            startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Status: $selectedStatus")
+                                        Text("▼", fontSize = 12.sp)
+                                    }
+                                }
+
+                                DropdownMenu(
+                                    expanded = showStatusDropdown,
+                                    onDismissRequest = { showStatusDropdown = false }
+                                ) {
+                                    statusOptions.forEach { status ->
+                                        DropdownMenuItem(
+                                            text = { Text(status) },
+                                            onClick = {
+                                                selectedStatus = status
+                                                showStatusDropdown = false
+                                            }
                                         )
                                     }
-                                    Text("📅", fontSize = 20.sp)
                                 }
                             }
 
-                            // End Date Picker Button
-                            OutlinedButton(
-                                onClick = { showEndDatePicker = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color.Black
-                                ),
-                                border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
-                            ) {
-                                Row(
+                            // Event Type dropdown
+                            Box {
+                                OutlinedButton(
+                                    onClick = { showEventTypeDropdown = true },
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Transparent,
+                                        contentColor = Color.White
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Gray)
                                 ) {
-                                    Column {
-                                        Text("End Date", fontSize = 12.sp, color = Color.Gray)
-                                        Text(
-                                            endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Type: ${selectedEventType?.name ?: "Custom Event"}")
+                                        Text("▼", fontSize = 12.sp)
+                                    }
+                                }
+
+                                DropdownMenu(
+                                    expanded = showEventTypeDropdown,
+                                    onDismissRequest = { showEventTypeDropdown = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Custom Event") },
+                                        onClick = {
+                                            selectedEventType = null
+                                            showEventTypeDropdown = false
+                                        }
+                                    )
+                                    eventTypes.forEach { eventType ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("${getEventIcon(eventType.iconName)} ${eventType.name}")
+                                                }
+                                            },
+                                            onClick = {
+                                                selectedEventType = eventType
+                                                showEventTypeDropdown = false
+                                            }
                                         )
                                     }
-                                    Text("📅", fontSize = 20.sp)
                                 }
                             }
-
-                            // Duration display
-                            val duration = ChronoUnit.DAYS.between(startDate, endDate) + 1
-                            Text(
-                                "Duration: $duration day${if (duration != 1L) "s" else ""}",
-                                fontSize = 14.sp,
-                                color = Color.Gray,
-                                fontStyle = FontStyle.Italic,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
                         }
                     }
-                } else {
-                    // Single day event - show date picker button
-                    OutlinedButton(
-                        onClick = { showStartDatePicker = true },
+
+                    // Aircraft Selection Section
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black
-                        ),
-                        border = BorderStroke(2.dp, Color.Blue.copy(alpha = 0.3f))
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                        )
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Column {
-                                Text("Event Date", fontSize = 12.sp, color = Color.Gray)
+                            Text(
+                                text = "Select aircraft:",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                modifier = Modifier.height(100.dp),
+                                contentPadding = PaddingValues(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                items(tailNumbers) { tailNumber ->
+                                    val isSelected = selectedTailNumber == tailNumber.number && !useCustomTailNumber
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            if (isSelected) {
+                                                selectedTailNumber = null
+                                                useCustomTailNumber = false
+                                                customTailNumber = ""
+                                            } else {
+                                                selectedTailNumber = tailNumber.number
+                                                useCustomTailNumber = false
+                                                customTailNumber = ""
+                                            }
+                                        },
+                                        modifier = Modifier.height(40.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = if (isSelected) Color.LightGray.copy(alpha = 0.3f) else Color.Transparent,
+                                            contentColor = if (isSelected) Color.White else Color.LightGray
+                                        ),
+                                        border = BorderStroke(
+                                            2.dp,
+                                            if (isSelected) Color.White else Color.Gray
+                                        )
+                                    ) {
+                                        Text(
+                                            text = tailNumber.number,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Custom tail number option
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = useCustomTailNumber,
+                                    onCheckedChange = {
+                                        useCustomTailNumber = it
+                                        if (it) {
+                                            selectedTailNumber = null
+                                        } else {
+                                            customTailNumber = ""
+                                        }
+                                    }
+                                )
                                 Text(
-                                    startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                    text = "Other:",
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium
+                                    modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                                OutlinedTextField(
+                                    value = customTailNumber,
+                                    onValueChange = {
+                                        customTailNumber = it
+                                        if (it.isNotBlank()) {
+                                            useCustomTailNumber = true
+                                            selectedTailNumber = null
+                                        }
+                                    },
+                                    placeholder = { Text("Enter tail number", color = Color.Gray) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    enabled = useCustomTailNumber || customTailNumber.isNotBlank(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedBorderColor = Color.Gray,
+                                        unfocusedBorderColor = Color.Gray,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        disabledTextColor = Color.Gray,
+                                        disabledBorderColor = Color.Gray.copy(alpha = 0.5f)
+                                    )
                                 )
                             }
-                            Text("📅", fontSize = 20.sp)
+                        }
+                    }
+
+                    // Multi-day Event Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Multi-day event checkbox
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isMultiDay,
+                                    onCheckedChange = {
+                                        isMultiDay = it
+                                        if (!it) {
+                                            endDate = startDate
+                                        }
+                                    }
+                                )
+                                Text(
+                                    text = "Multi-day event",
+                                    modifier = Modifier.padding(start = 8.dp),
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+
+                            // Date editing
+                            if (isMultiDay) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.LightGray.copy(alpha = 0.15f)
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Gray)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            "Date Range",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+
+                                        // Start Date Picker Button
+                                        OutlinedButton(
+                                            onClick = { showStartDatePicker = true },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = Color.Transparent,
+                                                contentColor = Color.White
+                                            ),
+                                            border = BorderStroke(1.dp, Color.Gray)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text("Start Date", fontSize = 12.sp, color = Color.Gray)
+                                                    Text(
+                                                        startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                                Text("📅", fontSize = 20.sp)
+                                            }
+                                        }
+
+                                        // End Date Picker Button
+                                        OutlinedButton(
+                                            onClick = { showEndDatePicker = true },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = Color.Transparent,
+                                                contentColor = Color.White
+                                            ),
+                                            border = BorderStroke(1.dp, Color.Gray)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text("End Date", fontSize = 12.sp, color = Color.Gray)
+                                                    Text(
+                                                        endDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                                Text("📅", fontSize = 20.sp)
+                                            }
+                                        }
+
+                                        // Duration display
+                                        val duration = ChronoUnit.DAYS.between(startDate, endDate) + 1
+                                        Text(
+                                            "Duration: $duration day${if (duration != 1L) "s" else ""}",
+                                            fontSize = 14.sp,
+                                            color = Color.Gray,
+                                            fontStyle = FontStyle.Italic,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Single day event - show date picker button
+                                OutlinedButton(
+                                    onClick = { showStartDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Transparent,
+                                        contentColor = Color.White
+                                    ),
+                                    border = BorderStroke(1.dp, Color.Gray)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text("Event Date", fontSize = 12.sp, color = Color.Gray)
+                                            Text(
+                                                startDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                        Text("📅", fontSize = 20.sp)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Row(
-                modifier = Modifier.width(500.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
-                ) {
-                    Text("Cancel")
-                }
 
-                Button(
-                    onClick = {
-                        val finalTailNumber = when {
-                            useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
-                            selectedTailNumber != null -> selectedTailNumber
-                            else -> null
-                        }
-
-                        val updatedEvent = event.copy(
-                            title = title.trim(),
-                            description = description.takeIf { it.isNotBlank() },
-                            aircraftTailNumber = finalTailNumber,
-                            status = selectedStatus,
-                            eventTypeId = selectedEventType?.eventTypeId,
-                            startDate = startDate,
-                            endDate = if (isMultiDay) endDate else startDate
-                        )
-                        onEventUpdated(updatedEvent)
-                    },
-                    enabled = isFormValid,
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Blue.copy(alpha = 0.8f)
-                    )
+                // Bottom button row - matches other dialogs
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Save Changes")
+                    // Cancel button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                        border = BorderStroke(2.dp, Color.Gray),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel", fontWeight = FontWeight.Bold)
+                    }
+
+                    // Save Changes button
+                    OutlinedButton(
+                        onClick = {
+                            val finalTailNumber = when {
+                                useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
+                                selectedTailNumber != null -> selectedTailNumber
+                                else -> null
+                            }
+
+                            val updatedEvent = event.copy(
+                                title = title.trim(),
+                                description = description.takeIf { it.isNotBlank() },
+                                aircraftTailNumber = finalTailNumber,
+                                status = selectedStatus,
+                                eventTypeId = selectedEventType?.eventTypeId,
+                                startDate = startDate,
+                                endDate = if (isMultiDay) endDate else startDate
+                            )
+                            onEventUpdated(updatedEvent)
+                        },
+                        enabled = isFormValid,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.2f),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color.Gray.copy(alpha = 0.2f),
+                            disabledContentColor = Color.Gray
+                        ),
+                        border = BorderStroke(2.dp, Color.Gray),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save Changes", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
-        },
-        dismissButton = {}
-    )
+        }
+    }
 }
