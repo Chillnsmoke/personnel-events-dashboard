@@ -44,7 +44,7 @@ fun ShopColumn(
 ) {
     // Sorting as specified:
     val rankOrder = mapOf(
-        "LTCDR" to 0,
+        "LCDR" to 0,
         "LT" to 1,
         "LTJG" to 2,
         "ENS" to 3,
