@@ -54,6 +54,8 @@ val ShopBorderGradient =
     colors = listOf(
         Color(0xFF5D5D5D),
         Color(0xFFA8A8A8),
+        Color(0xFF939393),
+        Color(0xFFA8A8A8),
         Color(0xFF5D5D5D)
     ) //Purple Raindrops Neon Gradient doubled
 )

@@ -91,7 +91,7 @@ fun ShopColumn(
                     text = shop.name,
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.ExtraBold,
-                    color = E7
+                    color = Color.White
                 )
             }
         }
