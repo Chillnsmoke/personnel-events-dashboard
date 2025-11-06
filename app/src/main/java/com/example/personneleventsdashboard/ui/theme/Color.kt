@@ -14,15 +14,25 @@ val Pink40 = Color(0xFF7D5260)
 
 val Shop = Color(0xFFCCCCCC)
 
+val Officer =
+    Brush.linearGradient(
+        colors = listOf(
+            Color(0xFFC4C4C4),
+            Color(0xFFFFFFFF),
+            Color(0xFFD9D9D9),
+            Color(0xFFFFFFFF),
+            Color(0xFFC4C4C4)
+        )
+    )
 val E9 = Color(0xFF1d3557)
 val E8 = Color(0xFF1d3557)
 val E7 = Color(0xFF1d3557)
 val E6 = Color(0xFF457b9d)
 val E5 = Color(0xFF4ea8de)
-val E4 = Color(0xFFf1faee)
+val E4 = Color(0xFFD0D9E8)
 val E3 = Color(0xFFf1faee)
 
-val Background = Color(0xFF1a1a1a)
+val Background = Color(0xFF333333)
 val Border = Color(0xFF7d8181)
 val Charcoal = Color(0xFF333333)
 val LightGrey = Color(0xFFCCCCCC)
@@ -42,34 +52,17 @@ val DPLFill = Color(0xFF6699FF)
 val ShopBorderGradient =
     Brush.linearGradient(
     colors = listOf(
-        Color(0xFF4cc9f0),
-        Color(0xFF4895ef),
-        Color(0xFF4361ee),
-        Color(0xFF3f37c9),
-        Color(0xFF3a0ca3),
-        Color(0xFF480ca8),
-        Color(0xFF560bad),
-        Color(0xFF7209b7),
-        Color(0xFFb5179e),
-        Color(0xFFf72585),
-        Color(0xFFb5179e),
-        Color(0xFF7209b7),
-        Color(0xFF560bad),
-        Color(0xFF480ca8),
-        Color(0xFF3a0ca3),
-        Color(0xFF3f37c9),
-        Color(0xFF4361ee),
-        Color(0xFF4895ef),
-        Color(0xFF4cc9f0)
+        Color(0xFF5D5D5D),
+        Color(0xFFA8A8A8),
+        Color(0xFF5D5D5D)
     ) //Purple Raindrops Neon Gradient doubled
 )
 
 val ShopHeaderGradient =
     Brush.linearGradient(
     colors = listOf(
-        Color(0xFFe63946),
-        Color(0xFFe63946)
+        Color(0xFFA8A8A8),
+        Color(0xFF5D5D5D),
+        Color(0xFFA8A8A8)
     ),
-    start = Offset(0f, 50f),     // Near top-left
-    end = Offset(400f, 0f)       // Top-right
 )

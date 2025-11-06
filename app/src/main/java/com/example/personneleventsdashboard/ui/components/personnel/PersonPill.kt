@@ -36,8 +36,10 @@ import com.example.personneleventsdashboard.ui.theme.SLDBorder
 import com.example.personneleventsdashboard.ui.theme.DPLFill
 import com.example.personneleventsdashboard.ui.theme.DPLBorder
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import com.example.personneleventsdashboard.ui.theme.Officer
 
 
 @Composable
@@ -49,6 +51,7 @@ fun colorForRank(rank: String): Color = when (rank) {
     "AMT2", "AET2"   -> E5
     "AMT3", "AET3"   -> E4
     "AN"             -> E3
+    "CWO", "ENS", "LTJG", "LT", "LCDR" -> Color.LightGray
     else             -> Color.LightGray // fallback/default color
 }
 
@@ -64,12 +67,16 @@ fun PersonPill(
             person.status.contains("TDY") ||
             person.status.contains("Deployed")
 
+    // Check if person is an officer
+    val isOfficer = listOf("CWO", "ENS", "LTJG", "LT", "LCDR").contains(person.rank)
+
     // Determine colors based on status (status overrides rank colors)
     val (fillColor, borderColor, textColor) = when {
         person.status.contains("LV") -> Triple(LVFill, LVBorder, Charcoal)
         person.status.contains("SLD") -> Triple(SLDFill, SLDBorder, Charcoal)
         person.status.contains("TDY") -> Triple(TDYFill, TDYBorder, Charcoal)
         person.status.contains("Deployed") -> Triple(DPLFill, DPLBorder, Color.White)
+        isOfficer -> Triple(Color.Transparent, null, Charcoal)
         else -> Triple(colorForRank(person.rank), null, Charcoal) // Normal rank colors
     }
 
@@ -96,6 +103,17 @@ fun PersonPill(
             .padding(vertical = 4.dp, horizontal = 6.dp)
             .height(40.dp)
             .clickable { onClick() }
+            // Apply gradient background for officers (same technique as ShopColumn)
+            .then(
+                if (isOfficer && !hasStatus) {
+                    Modifier.background(
+                        brush = Officer,
+                        shape = RoundedCornerShape(15.dp)
+                    )
+                } else {
+                    Modifier
+                }
+            )
             // Apply filtering effects
             .blur(
                 when {
