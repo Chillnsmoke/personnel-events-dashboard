@@ -5,6 +5,27 @@ import com.example.personneleventsdashboard.model.Person
 class PersonnelDataManager {
 
     /**
+     * Returns all possible military ranks (comprehensive list)
+     */
+    fun getAllPossibleRanks(): List<String> {
+        return MilitaryRanks.getAllRanks()
+    }
+
+    /**
+     * Returns all possible qualifications (comprehensive list)
+     */
+    fun getAllPossibleQualifications(): List<String> {
+        return MilitaryRanks.QUALIFICATIONS
+    }
+
+    /**
+     * Returns all possible duty sections (comprehensive list)
+     */
+    fun getAllPossibleSections(): List<String> {
+        return MilitaryRanks.DUTY_SECTIONS
+    }
+
+    /**
      * Returns real personnel data for the air station
      */
     fun getRealPersonnelData(): List<PersonData> {

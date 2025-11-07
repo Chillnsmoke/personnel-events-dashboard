@@ -13,7 +13,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Person::class, Shop::class, Event::class, EventType::class, TailNumber::class],
-    version = 18, // INCREMENT
+    version = 21, // INCREMENT
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)
@@ -27,7 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
 
 // Updated migration for the simplified position system:
 
-val MIGRATION_17_TO_18 = object : Migration(17, 18) {
+val MIGRATION_18_TO_21 = object : Migration(18, 21) {
     override fun migrate(database: SupportSQLiteDatabase) {
         // Add new simplified position column
         database.execSQL("ALTER TABLE shops ADD COLUMN displayPosition INTEGER")

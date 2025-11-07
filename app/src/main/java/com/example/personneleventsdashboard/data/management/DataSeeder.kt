@@ -41,13 +41,49 @@ class DataSeeder(
 
     private suspend fun seedShops() {
         val shopDao = database.shopDao()
-        val shopNames = listOf(
-            "LCPO", "Division Managers", "QA - Nights", "Flight Schedules", "C130 AVENG Officer", "AVENG Flight Pay", "Maintenance Officer", "AMO", "Engine", "Prop", "Metal", "Load Cage", "Nights",
-            "Maintenance Control", "Avionics", "Sensor", "Tool Room", "QA", "Line Crew", "MPC Analyst", "Training"
+
+        // Define shops with their positions - FIXED to include displayPosition
+        val shopsWithPositions = listOf(
+            Shop(name = "C130 AVENG Officer", displayPosition = 1),
+            Shop(name = "LCPO", displayPosition = 2),
+            Shop(name = "Maintenance Officer", displayPosition = 3),
+            Shop(name = "Division Managers", displayPosition = 4),
+            Shop(name = "Training", displayPosition = 5),
+            Shop(name = "Flight Schedules", displayPosition = 6),
+            Shop(name = "Maintenance Control", displayPosition = 7),
+            Shop(name = "AVENG FlightPay", displayPosition = 8),
+            Shop(name = "MPC Analyst", displayPosition = 9),
+
+            // Column 1: Positions 10-14
+            Shop(name = "AMO", displayPosition = 10),
+            Shop(name = "Engine", displayPosition = 11),
+            Shop(name = "Metal", displayPosition = 12),
+            // Positions 13, 14 empty
+
+            // Column 2: Positions 15-19
+            Shop(name = "Prop", displayPosition = 15),
+            Shop(name = "Load Cage", displayPosition = 16),
+            Shop(name = "Line Crew", displayPosition = 17),
+            // Positions 18, 19 empty
+
+            // Column 3: Positions 20-24
+            Shop(name = "Avionics", displayPosition = 20),
+            // Positions 21, 22, 23, 24 empty
+
+            // Column 4: Positions 25-29
+            Shop(name = "QA", displayPosition = 25),
+            Shop(name = "Sensor", displayPosition = 26),
+            Shop(name = "Tool Room", displayPosition = 27),
+            // Positions 28, 29 empty
+
+            // Column 5: Positions 30-34
+            Shop(name = "QA - Nights", displayPosition = 30),
+            Shop(name = "Nights", displayPosition = 31)
+            // Positions 32, 33, 34 empty
         )
 
-        shopNames.forEach { name ->
-            shopDao.insertShop(Shop(name = name))
+        shopsWithPositions.forEach { shop ->
+            shopDao.insertShop(shop)
         }
     }
 
@@ -87,65 +123,65 @@ class DataSeeder(
         val presetEventTypes = listOf(
             EventType(
                 name = "Wash",
-                description = "Scheduled aircraft cleaning",
+                description = "Airframe Wash",
                 iconName = "wash",
-                color = "#4FC3F7",
+                color = "#8fb1b6",
                 isPreset = true
             ),
             EventType(
                 name = "F. & W.W.",
-                description = "Scheduled aircraft cleaning",
+                description = "Flap and wheel well wash",
                 iconName = "fww",
-                color = "#4FC3F7",
+                color = "#8cab99",
                 isPreset = true
             ),
             EventType(
                 name = "Comp Wash",
                 description = "Scheduled aircraft cleaning",
                 iconName = "comp wash",
-                color = "#4FC3F7",
+                color = "#354c3c",
                 isPreset = true
             ),
             EventType(
-                name = "Comp Rinse",
-                description = "Scheduled aircraft cleaning",
-                iconName = "comp rinse",
-                color = "#4FC3F7",
+                name = "Interior",
+                description = "Interior Wash",
+                iconName = "interior",
+                color = "#3e4850",
                 isPreset = true
             ),
             EventType(
                 name = "Weekly",
-                description = "Routine weekly aircraft inspection",
+                description = "Weekly inspection",
                 iconName = "inspection",
-                color = "#66BB6A",
+                color = "#638983",
                 isPreset = true
             ),
             EventType(
                 name = "Deployment",
-                description = "Aircraft deployment assignment",
+                description = "Aircraft deployment",
                 iconName = "deployment",
-                color = "#FF7043",
+                color = "#3c566a",
                 isPreset = true
             ),
             EventType(
                 name = "Maintenance",
                 description = "Scheduled maintenance work",
                 iconName = "maintenance",
-                color = "#FFA726",
+                color = "#4a4737",
                 isPreset = true
             ),
             EventType(
                 name = "Training",
                 description = "Personnel training event",
                 iconName = "training",
-                color = "#AB47BC",
+                color = "#56414c",
                 isPreset = true
             ),
             EventType(
                 name = "Holiday",
                 description = "Holiday or special occasion",
                 iconName = "holiday",
-                color = "#EF5350",
+                color = "#56536b",
                 isPreset = true
             )
         )

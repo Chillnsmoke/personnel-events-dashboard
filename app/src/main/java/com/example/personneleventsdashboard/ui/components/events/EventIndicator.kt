@@ -34,7 +34,7 @@ fun EventIndicator(
     val eventColor = if (eventType != null) {
         getEventColor(eventType.color)
     } else {
-        Color.Black
+        Color(0XFFd5d1c8)
     }
 
     // Get icon from event type
@@ -71,9 +71,9 @@ fun EventIndicator(
             .clickable { onClick() },
         shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = eventColor.copy(alpha = 0.3f)
+            containerColor = eventColor.copy(alpha = 0.8f)
         ),
-        border = BorderStroke(1.dp, eventColor)
+        border = BorderStroke(2.dp, eventColor)
     ) {
         Row(
             modifier = Modifier

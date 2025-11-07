@@ -23,7 +23,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -61,7 +60,7 @@ fun PresetEventDialog(
     onBack: () -> Unit,
     onEventAdded: (Event) -> Unit
 ) {
-    var selectedEventType by remember { mutableStateOf<EventType?>(null) }
+    var selectedEventTypes by remember { mutableStateOf(setOf<EventType>()) }
     var selectedTailNumber by remember { mutableStateOf<String?>(null) }
     var customTailNumber by remember { mutableStateOf("") }
     var useCustomTailNumber by remember { mutableStateOf(false) }
@@ -69,12 +68,22 @@ fun PresetEventDialog(
     var isMultiDay by remember { mutableStateOf(false) }
     var startDate by remember { mutableStateOf(selectedDate) }
     var endDate by remember { mutableStateOf(selectedDate) }
+    var customTitle by remember { mutableStateOf("") } // Custom title
+    var multipleEventsMode by remember { mutableStateOf(false) } // Multiple events toggle
 
     // Date picker states
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
 
-    // Start Date Picker Dialog
+    // Form validation for multiple events mode
+    val isFormValid = if (multipleEventsMode) {
+        selectedEventTypes.isNotEmpty() &&
+                (selectedTailNumber != null || (useCustomTailNumber && customTailNumber.isNotBlank()))
+    } else {
+        selectedEventTypes.size == 1
+    }
+
+    // Date picker dialogs
     if (showStartDatePicker) {
         DatePickerDialog(
             currentDate = startDate,
@@ -89,7 +98,6 @@ fun PresetEventDialog(
         )
     }
 
-    // End Date Picker Dialog
     if (showEndDatePicker) {
         DatePickerDialog(
             currentDate = endDate,
@@ -100,6 +108,32 @@ fun PresetEventDialog(
             },
             onDismiss = { showEndDatePicker = false }
         )
+    }
+
+    // Helper function to create events
+    fun createEvents(): List<Event> {
+        val finalStartDate = if (isMultiDay) startDate else selectedDate
+        val finalEndDate = if (isMultiDay) endDate else selectedDate
+        val finalTailNumber = when {
+            useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
+            selectedTailNumber != null -> selectedTailNumber
+            else -> null
+        }
+
+        return selectedEventTypes.map { eventType ->
+            val eventTitle = if (customTitle.isNotBlank()) customTitle.trim() else eventType.name
+            val eventDescription = if (description.isNotBlank()) description.trim() else eventType.description
+
+            Event(
+                title = eventTitle,
+                description = eventDescription,
+                startDate = finalStartDate,
+                endDate = finalEndDate,
+                eventTypeId = eventType.eventTypeId,
+                aircraftTailNumber = finalTailNumber,
+                status = "Scheduled"
+            )
+        }
     }
 
     // Using Dialog instead of AlertDialog for full width control - matches other dialogs
@@ -114,7 +148,7 @@ fun PresetEventDialog(
         Card(
             modifier = Modifier
                 .width(500.dp)  // Wider for more content
-                .height(900.dp), // Taller for all sections
+                .height(800.dp), // Taller for all sections
             shape = RoundedCornerShape(16.dp),  // Same as other dialogs
             colors = CardDefaults.cardColors(containerColor = Color.Black),  // Same black background
             border = BorderStroke(2.dp, Color.Gray)  // Same border style
@@ -140,6 +174,34 @@ fun PresetEventDialog(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Multiple Events Toggle
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.LightGray.copy(alpha = 0.1f)  // Same as other dialogs
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = multipleEventsMode,
+                                onCheckedChange = {
+                                    multipleEventsMode = it
+                                    selectedEventTypes = setOf() // Clear selections when toggling
+                                }
+                            )
+                            Text(
+                                text = "Multiple Events Mode",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
+
                     // Event Type Selection Section
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -152,7 +214,7 @@ fun PresetEventDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "Select an event type:",
+                                text = if (multipleEventsMode) "Select event types:" else "Select an event type:",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -172,12 +234,22 @@ fun PresetEventDialog(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         eventTypeTriplet.forEach { eventType ->
-                                            val isSelected = selectedEventType == eventType
+                                            val isSelected = selectedEventTypes.contains(eventType)
                                             val eventColor = getEventColor(eventType.color)
                                             val eventIcon = getEventIcon(eventType.iconName)
 
                                             OutlinedButton(
-                                                onClick = { selectedEventType = eventType },
+                                                onClick = {
+                                                    selectedEventTypes = if (multipleEventsMode) {
+                                                        if (isSelected) {
+                                                            selectedEventTypes - eventType
+                                                        } else {
+                                                            selectedEventTypes + eventType
+                                                        }
+                                                    } else {
+                                                        if (isSelected) setOf() else setOf(eventType)
+                                                    }
+                                                },
                                                 modifier = Modifier.weight(1f),
                                                 colors = ButtonDefaults.outlinedButtonColors(
                                                     containerColor = if (isSelected) Color.LightGray.copy(alpha = 0.3f) else Color.Transparent,
@@ -217,6 +289,40 @@ fun PresetEventDialog(
                         }
                     }
 
+                    // Custom Title Section (only show in single event mode)
+                    if (!multipleEventsMode) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.LightGray.copy(alpha = 0.1f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = customTitle,
+                                    onValueChange = { customTitle = it },
+                                    label = { Text("Custom Title (Optional)", color = Color.Gray) },
+                                    placeholder = { Text("Leave blank to use event type name", color = Color.Gray) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedBorderColor = Color.Gray,
+                                        unfocusedBorderColor = Color.Gray,
+                                        focusedLabelColor = Color.Gray,
+                                        unfocusedLabelColor = Color.Gray,
+                                        cursorColor = Color.White,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent
+                                    )
+                                )
+                            }
+                        }
+                    }
+
                     // Aircraft Selection Section
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -229,10 +335,10 @@ fun PresetEventDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "Select aircraft:",
+                                text = if (multipleEventsMode) "Select aircraft (Required):" else "Select aircraft:",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = if (multipleEventsMode) Color.Yellow else Color.White
                             )
 
                             LazyVerticalGrid(
@@ -492,7 +598,7 @@ fun PresetEventDialog(
                     }
                 }
 
-                // Bottom button row - matches other dialogs
+                // Bottom button row - clean two-button layout
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -509,31 +615,15 @@ fun PresetEventDialog(
                         Text("Back", fontWeight = FontWeight.Bold)
                     }
 
-                    // Add Event button
+                    // Add Event(s) button
                     OutlinedButton(
                         onClick = {
-                            selectedEventType?.let { eventType ->
-                                val finalStartDate = if (isMultiDay) startDate else selectedDate
-                                val finalEndDate = if (isMultiDay) endDate else selectedDate
-                                val finalTailNumber = when {
-                                    useCustomTailNumber && customTailNumber.isNotBlank() -> customTailNumber.trim()
-                                    selectedTailNumber != null -> selectedTailNumber
-                                    else -> null
-                                }
-
-                                val newEvent = Event(
-                                    title = eventType.name,
-                                    description = if (description.isNotBlank()) description.trim() else eventType.description,
-                                    startDate = finalStartDate,
-                                    endDate = finalEndDate,
-                                    eventTypeId = eventType.eventTypeId,
-                                    aircraftTailNumber = finalTailNumber,
-                                    status = "Scheduled"
-                                )
-                                onEventAdded(newEvent)
+                            val events = createEvents()
+                            events.forEach { event ->
+                                onEventAdded(event)
                             }
                         },
-                        enabled = selectedEventType != null,
+                        enabled = isFormValid,
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color.LightGray.copy(alpha = 0.2f),
                             contentColor = Color.White,
@@ -543,7 +633,10 @@ fun PresetEventDialog(
                         border = BorderStroke(2.dp, Color.Gray),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Add Event", fontWeight = FontWeight.Bold)
+                        Text(
+                            if (multipleEventsMode) "Add Events" else "Add Event",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

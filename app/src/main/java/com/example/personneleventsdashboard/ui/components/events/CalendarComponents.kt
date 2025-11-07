@@ -332,7 +332,7 @@ fun BoxScope.MultiDayEventSpan(
     val eventColor = if (eventType != null) {
         getEventColor(eventType.color)
     } else {
-        Color.Red
+        Color(0XFFd5d1c8)
     }
 
     // Status-based styling
@@ -378,9 +378,9 @@ fun BoxScope.MultiDayEventSpan(
                 bottomEnd = if (isLastDayOfEvent) 4.dp else 0.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = eventColor.copy(alpha = 0.4f)
+                containerColor = eventColor.copy(alpha = 0.8f)
             ),
-            border = BorderStroke(1.dp, eventColor),
+            border = BorderStroke(2.dp, eventColor),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Box(

@@ -7,7 +7,7 @@ fun getEventIcon(iconName: String?): String {
         "wash" -> "🛩️"
         "fww" -> "\uD83E\uDDFD"
         "comp wash" -> "\uD83C\uDF00"
-        "comp rinse" -> "\uD83D\uDEB0"
+        "interior" -> "\uD83D\uDEB0"
         "inspection" -> "🔍"
         "deployment" -> "📍"
         "maintenance" -> "🔧"

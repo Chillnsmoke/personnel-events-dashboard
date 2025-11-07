@@ -92,6 +92,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.text.font.Font
 import com.example.personneleventsdashboard.data.management.DataSeeder
+import com.example.personneleventsdashboard.data.management.PersonnelDataManager
 import com.example.personneleventsdashboard.ui.components.personnel.PersonPill
 import com.example.personneleventsdashboard.ui.components.personnel.colorForRank
 import com.example.personneleventsdashboard.ui.components.personnel.PersonPillWithMenu
@@ -1111,12 +1112,13 @@ class MainActivity : ComponentActivity() {
             }
 
             // Dialog handlers - Add Person (keep these exactly as they were, outside the Settings Dialog)
+            val personnelDataManager = remember { PersonnelDataManager() }
             if (showAddPersonDialog) {
                 AddPersonDialog(
                     shopList = shopList,
-                    allQualifications = allQualifications,
-                    allRanks = allRanks,
-                    allSections = allSections,
+                    allQualifications = personnelDataManager.getAllPossibleQualifications(),
+                    allRanks = personnelDataManager.getAllPossibleRanks(),
+                    allSections = personnelDataManager.getAllPossibleSections(),
                     onDismiss = { showAddPersonDialog = false },
                     onSave = { newPerson ->
                         personViewModel.insertPerson(newPerson)
@@ -1147,9 +1149,9 @@ class MainActivity : ComponentActivity() {
                 EditPersonDialog(
                     person = person,
                     shopList = shopList,
-                    allQualifications = allQualifications,
-                    allRanks = allRanks,
-                    allSections = allSections,
+                    allQualifications = personnelDataManager.getAllPossibleQualifications(),
+                    allRanks = personnelDataManager.getAllPossibleRanks(),
+                    allSections = personnelDataManager.getAllPossibleSections(),
                     onDismiss = { selectedPersonToEdit = null },
                     onSave = { updatedPerson ->
                         personViewModel.updatePerson(updatedPerson)
@@ -1592,7 +1594,7 @@ class MainActivity : ComponentActivity() {
         val eventColor = if (eventType != null) {
             getEventColor(eventType.color)
         } else {
-            Color.Blue // Default for custom events
+            Color(0XFFd5d1c8) // Default for custom events
         }
 
         Card(

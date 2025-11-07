@@ -218,7 +218,9 @@ fun AddPersonDialog(
                                         "ENS" to 8,
                                         "LTJG" to 9,
                                         "LT" to 10,
-                                        "LCDR" to 11
+                                        "LCDR" to 11,
+                                        "CDR" to 12,
+                                        "CAPT" to 13
                                     )
                                 }
                                 // Updated dropdown with proper rank sorting (lowest first):
